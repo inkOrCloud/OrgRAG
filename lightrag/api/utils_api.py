@@ -223,11 +223,7 @@ def get_combined_auth_dependency(api_key: Optional[str] = None):
                     raise
                 # For other exceptions, continue processing
 
-        # 3. Acept all request if no API protection needed
-        if not auth_configured and not api_key_configured:
-            return
-
-        # 4. Validate API key if provided and API-Key authentication is configured
+        # 3. Validate API key if provided and API-Key authentication is configured
         if (
             api_key_configured
             and api_key_header_value
@@ -237,8 +233,8 @@ def get_combined_auth_dependency(api_key: Optional[str] = None):
 
         ### Authentication failed ####
 
-        # if password authentication is configured but not provided, ensure 401 error if auth_configured
-        if auth_configured and not token:
+        # No valid credentials provided
+        if not token:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="No credentials provided. Please login.",

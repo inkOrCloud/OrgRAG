@@ -24,7 +24,6 @@ export default function LoginPage() {
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [authConfigured, setAuthConfigured] = useState(true)
   const [checking, setChecking] = useState(true)
   const [webuiTitle, setWebuiTitle] = useState('LightRAG')
 
@@ -34,26 +33,15 @@ export default function LoginPage() {
       return
     }
 
+    // Fetch server metadata (title, version) for display on the login page.
+    // Authentication is always required; never auto-redirect.
     getAuthStatus()
       .then((res) => {
         setWebuiTitle(res.webui_title || 'LightRAG')
-        setAuthConfigured(res.auth_configured)
-        if (!res.auth_configured) {
-          // Auth is disabled – mark as authenticated with no token (backend allows all requests)
-          setAuthInfo({
-            token: '',
-            authMode: 'disabled',
-            coreVersion: res.core_version,
-            apiVersion: res.api_version,
-            webuiTitle: res.webui_title,
-            webuiDescription: res.webui_description,
-          })
-          navigate('/', { replace: true })
-        }
       })
       .catch(() => setError(`无法连接到 ${webuiTitle} 服务器，请检查 API 地址是否正确。`))
       .finally(() => setChecking(false))
-  }, [isAuthenticated, navigate, setAuthInfo])
+  }, [isAuthenticated, navigate])
 
   const handleLogin = async (values: { username: string; password: string }) => {
     setLoading(true)
@@ -64,7 +52,7 @@ export default function LoginPage() {
         token: res.access_token,
         role: res.role,
         username: values.username,
-        authMode: res.auth_mode,
+        authMode: res.auth_mode === 'enabled' ? 'enabled' : undefined,
         coreVersion: res.core_version,
         apiVersion: res.api_version,
         webuiTitle: res.webui_title,
@@ -156,9 +144,7 @@ export default function LoginPage() {
           />
         )}
 
-        {authConfigured && (
-          <>
-            <Form
+        <Form
               layout="vertical"
               onFinish={handleLogin}
               requiredMark={false}
@@ -197,9 +183,7 @@ export default function LoginPage() {
                   登录
                 </Button>
               </Form.Item>
-            </Form>
-          </>
-        )}
+        </Form>
       </Card>
     </div>
   )

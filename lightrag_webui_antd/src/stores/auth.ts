@@ -10,7 +10,7 @@ interface AuthState {
   /** 'admin' | 'user' */
   role: UserRole
   username: string
-  authMode: 'enabled' | 'disabled' | null
+  authMode: 'enabled' | null
   coreVersion: string
   apiVersion: string
   webuiTitle: string
@@ -23,7 +23,7 @@ interface AuthState {
   setAuthInfo: (info: {
     token: string
     role?: UserRole
-    authMode?: 'enabled' | 'disabled'
+    authMode?: 'enabled'
     coreVersion?: string
     apiVersion?: string
     webuiTitle?: string

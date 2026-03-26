@@ -108,11 +108,6 @@ export interface HealthStatus {
 }
 
 export interface AuthStatusResponse {
-  auth_configured: boolean
-  access_token?: string
-  token_type?: string
-  auth_mode?: 'enabled' | 'disabled'
-  message?: string
   core_version?: string
   api_version?: string
   webui_title?: string
@@ -122,7 +117,7 @@ export interface AuthStatusResponse {
 export interface LoginResponse {
   access_token: string
   token_type: string
-  auth_mode?: 'enabled' | 'disabled'
+  auth_mode?: string
   role?: UserRole
   message?: string
   core_version?: string

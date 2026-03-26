@@ -353,6 +353,28 @@ def create_app(args):
         if not os.path.exists(args.ssl_keyfile):
             raise Exception(f"SSL key file not found: {args.ssl_keyfile}")
 
+    # ── Mandatory authentication guard ────────────────────────────────────────
+    if not auth_handler.accounts:
+        ASCIIColors.red("\n" + "=" * 80)
+        ASCIIColors.red("ERROR: AUTH_ACCOUNTS is not configured.")
+        ASCIIColors.red("=" * 80)
+        ASCIIColors.red(
+            "Authentication is mandatory. The server will not start without"
+            " at least one user account."
+        )
+        ASCIIColors.yellow(
+            "\nAdd AUTH_ACCOUNTS to your .env file:"
+        )
+        ASCIIColors.cyan("    AUTH_ACCOUNTS=admin:your_password")
+        ASCIIColors.yellow(
+            "\nFor multiple accounts use comma-separated pairs:"
+        )
+        ASCIIColors.cyan("    AUTH_ACCOUNTS=admin:pass1,alice:pass2")
+        ASCIIColors.red("\n" + "=" * 80 + "\n")
+        raise RuntimeError(
+            "AUTH_ACCOUNTS must be configured before starting the server."
+        )
+
     # Check if API key is provided either through env var or args
     api_key = os.getenv("LIGHTRAG_API_KEY") or args.key
 
@@ -1205,7 +1227,7 @@ def create_app(args):
 
         # When auth is disabled every request is treated as full-access;
         # only run the per-user KB permission check when accounts are configured.
-        if _needs_kb_check and auth_configured:
+        if _needs_kb_check:
             auth_header = request.headers.get("Authorization", "")
             if auth_header.startswith("Bearer "):
                 token = auth_header[7:]
@@ -1295,12 +1317,10 @@ def create_app(args):
         else:
             return RedirectResponse(url="/docs")
 
-    @app.get("/auth-status", tags=["system"], summary="Get authentication status")
+    @app.get("/auth-status", tags=["system"], summary="Get server metadata")
     async def get_auth_status():
-        """Get authentication status"""
+        """Return server version and branding metadata used by the login page."""
         return {
-            "auth_configured": bool(auth_handler.accounts),
-            "auth_mode": "enabled" if auth_handler.accounts else "disabled",
             "core_version": core_version,
             "api_version": api_version_display,
             "webui_title": webui_title,
@@ -1338,12 +1358,6 @@ def create_app(args):
     )
     async def login(form_data: OAuth2PasswordRequestForm = Depends()):
         from lightrag.api.user_db import get_user_db as _get_user_db
-
-        if not auth_configured:
-            raise HTTPException(
-                status_code=400,
-                detail="Authentication is not configured. No login required.",
-            )
 
         username = form_data.username
         db = _get_user_db()
@@ -1417,10 +1431,7 @@ def create_app(args):
                 "pipeline_status", workspace=workspace
             )
 
-            if not auth_configured:
-                auth_mode = "disabled"
-            else:
-                auth_mode = "enabled"
+            auth_mode = "enabled"
 
             # Cleanup expired keyed locks and get status
             keyed_lock_info = cleanup_keyed_lock()
