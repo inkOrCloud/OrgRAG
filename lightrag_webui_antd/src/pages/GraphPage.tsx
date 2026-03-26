@@ -35,6 +35,7 @@ import {
   getPopularLabels,
   getGraphData,
   searchGraphLabels,
+  extractErrorDetail,
 } from '@/api/client'
 import type { GraphNode, GraphEdge } from '@/types'
 import { useSettingsStore } from '@/stores/settings'
@@ -102,7 +103,7 @@ export default function GraphPage() {
     }
     getPopularLabels(50)
       .then(setLabels)
-      .catch(() => message.error('加载实体标签失败'))
+      .catch((err: unknown) => message.error(extractErrorDetail(err, '加载实体标签失败')))
   }, [currentKBId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const buildGraph = useCallback(
@@ -194,8 +195,8 @@ export default function GraphPage() {
         })
 
         setGraphInfo({ nodes: data.nodes.length, edges: data.edges.length })
-      } catch {
-        message.error(`加载图谱失败：${label}`)
+      } catch (err: unknown) {
+        message.error(extractErrorDetail(err, `加载图谱失败：${label}`))
       } finally {
         setLoading(false)
       }
@@ -217,8 +218,8 @@ export default function GraphPage() {
     try {
       const results = await searchGraphLabels(q, 20)
       setSearchResults(results)
-    } catch {
-      message.error('搜索失败')
+    } catch (err: unknown) {
+      message.error(extractErrorDetail(err, '搜索失败'))
     } finally {
       setSearching(false)
     }

@@ -35,7 +35,7 @@ import {
 } from '@ant-design/icons'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { queryStream, queryRag } from '@/api/client'
+import { queryStream, queryRag, extractErrorDetail } from '@/api/client'
 import { useSettingsStore } from '@/stores/settings'
 import { useChatStore } from '@/stores/chat'
 import { useKBStore } from '@/stores/kb'
@@ -439,7 +439,7 @@ export default function QueryPage() {
           )
         )
       } else {
-        const errMsg = err instanceof Error ? err.message : '查询失败'
+        const errMsg = extractErrorDetail(err, '查询失败')
         message.error(errMsg)
         setMessages((prev) =>
           prev.map((m) =>

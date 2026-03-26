@@ -52,6 +52,7 @@ import {
   reprocessFailed,
   cancelPipeline,
   getPipelineStatus,
+  extractErrorDetail,
 } from '@/api/client'
 import type { DocStatusResponse, DocStatus } from '@/types'
 import { useKBStore } from '@/stores/kb'
@@ -142,8 +143,8 @@ export default function DocumentsPage() {
         setDocs(res.documents)
         setStatusCounts(res.status_counts)
         setPagination((p) => ({ ...p, current: page, pageSize, total: res.pagination.total_count }))
-      } catch {
-        message.error('加载文档列表失败')
+      } catch (err: unknown) {
+        message.error(extractErrorDetail(err, '加载文档列表失败'))
       } finally {
         setLoading(false)
       }
@@ -270,8 +271,8 @@ export default function DocumentsPage() {
       await deleteDocument(id)
       message.success('文档已删除')
       fetchDocs()
-    } catch {
-      message.error('删除文档失败')
+    } catch (err: unknown) {
+      message.error(extractErrorDetail(err, '删除文档失败'))
     }
   }
 
@@ -299,8 +300,7 @@ export default function DocumentsPage() {
         message.warning({ content: res.message, key })
       }
     } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : '文件上传失败'
-      message.error({ content: errMsg, key })
+      message.error({ content: extractErrorDetail(err, '文件上传失败'), key })
     } finally {
       setUploading(false)
     }
@@ -320,8 +320,8 @@ export default function DocumentsPage() {
       } else {
         message.warning(res.message)
       }
-    } catch {
-      message.error('文本插入失败')
+    } catch (err: unknown) {
+      message.error(extractErrorDetail(err, '文本插入失败'))
     } finally {
       setTextInserting(false)
     }
@@ -331,8 +331,8 @@ export default function DocumentsPage() {
     try {
       await clearCache()
       message.success('LLM 缓存已清除')
-    } catch {
-      message.error('清除缓存失败')
+    } catch (err: unknown) {
+      message.error(extractErrorDetail(err, '清除缓存失败'))
     }
   }
 
@@ -342,8 +342,8 @@ export default function DocumentsPage() {
       message.success(res.message || '开始扫描输入目录')
       startPoll()
       setTimeout(fetchDocs, 2000)
-    } catch {
-      message.error('启动扫描失败')
+    } catch (err: unknown) {
+      message.error(extractErrorDetail(err, '启动扫描失败'))
     }
   }
 
@@ -353,8 +353,8 @@ export default function DocumentsPage() {
       message.success(res.message || '开始重新处理失败文档')
       startPoll()
       setTimeout(fetchDocs, 2000)
-    } catch {
-      message.error('重新处理失败')
+    } catch (err: unknown) {
+      message.error(extractErrorDetail(err, '重新处理失败'))
     }
   }
 
@@ -364,8 +364,8 @@ export default function DocumentsPage() {
       message.success(res.message || '处理管道已取消')
       if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
       setTimeout(fetchDocs, 1000)
-    } catch {
-      message.error('取消管道失败')
+    } catch (err: unknown) {
+      message.error(extractErrorDetail(err, '取消管道失败'))
     }
   }
 
@@ -374,8 +374,8 @@ export default function DocumentsPage() {
       const s = await getPipelineStatus()
       setPipelineStatus(s)
       setPipelineOpen(true)
-    } catch {
-      message.error('获取管道状态失败')
+    } catch (err: unknown) {
+      message.error(extractErrorDetail(err, '获取管道状态失败'))
     }
   }
 

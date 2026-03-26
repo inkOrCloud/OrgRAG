@@ -87,6 +87,12 @@ axiosInstance.interceptors.response.use(
       useAuthStore.getState().logout()
       window.location.href = '/webui/login'
     }
+    // Promote backend `detail` message onto the Error so catch blocks
+    // that use `err.message` automatically get the human-readable reason.
+    const detail = (err.response?.data as { detail?: string } | undefined)?.detail
+    if (detail && typeof detail === 'string') {
+      err.message = detail
+    }
     return Promise.reject(err)
   }
 )
@@ -99,6 +105,24 @@ function getApiBase(): string {
 function authHeaders(): Record<string, string> {
   const token = useAuthStore.getState().token
   return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
+/** Return X-KB-ID header for the currently selected knowledge base. */
+function kbHeaders(): Record<string, string> {
+  const kbId = useKBStore.getState().currentKBId
+  return kbId ? { 'X-KB-ID': kbId } : {}
+}
+
+/**
+ * Extract a user-friendly error message from an unknown catch value.
+ * Priority: AxiosError response.data.detail → err.message → fallback.
+ */
+export function extractErrorDetail(err: unknown, fallback: string): string {
+  if (!err) return fallback
+  const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+  if (detail && typeof detail === 'string') return detail
+  if (err instanceof Error && err.message) return err.message
+  return fallback
 }
 
 // ── Auth ────────────────────────────────────────────────────────
@@ -277,6 +301,7 @@ export async function* queryStream(
     headers: {
       'Content-Type': 'application/json',
       ...authHeaders(),
+      ...kbHeaders(),
     },
     body: JSON.stringify(req),
     signal,
@@ -284,7 +309,10 @@ export async function* queryStream(
 
   if (!res.ok) {
     const text = await res.text()
-    throw new Error(`Query failed: ${res.status} ${text}`)
+    // Try to extract a human-readable detail from JSON error body
+    let detail: string | undefined
+    try { detail = (JSON.parse(text) as { detail?: string }).detail } catch { /* ignore */ }
+    throw new Error(detail ?? `查询失败（${res.status}）`)
   }
 
   const reader = res.body!.getReader()

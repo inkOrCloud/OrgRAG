@@ -6,7 +6,7 @@
  * Fetches the KB list on first mount and after auth.
  */
 import { useEffect } from 'react'
-import { Select, Tag, Typography, App, Spin, Tooltip } from 'antd'
+import { Select, Tag, Typography, App, Spin, Tooltip, Alert } from 'antd'
 import { DatabaseOutlined } from '@ant-design/icons'
 import { listKBs, getKBSettings } from '@/api/client'
 import { useKBStore } from '@/stores/kb'
@@ -55,6 +55,38 @@ export default function KBSelector({ collapsed = false }: KBSelectorProps) {
     return collapsed ? null : (
       <div style={{ padding: '12px 16px' }}>
         <Spin size="small" />
+      </div>
+    )
+  }
+
+  // Loaded but no accessible KBs – show friendly guidance
+  if (loaded && kbs.length === 0) {
+    if (collapsed) {
+      return (
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          padding: '12px 0',
+          borderBottom: isDark ? '1px solid #303030' : '1px solid #f0f0f0',
+        }}>
+          <Tooltip title="暂无可访问的知识库" placement="right">
+            <DatabaseOutlined style={{ fontSize: 18, color: '#faad14', cursor: 'default' }} />
+          </Tooltip>
+        </div>
+      )
+    }
+    return (
+      <div style={{
+        padding: '10px 12px 12px',
+        borderBottom: isDark ? '1px solid #303030' : '1px solid #f0f0f0',
+      }}>
+        <Alert
+          type="warning"
+          showIcon
+          message="暂无可访问的知识库"
+          description="请联系管理员为您分配知识库权限"
+          style={{ fontSize: 12 }}
+        />
       </div>
     )
   }
