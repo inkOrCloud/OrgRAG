@@ -1,0 +1,33 @@
+- generic [ref=e894]:
+  - switch "moon sun" [ref=e896] [cursor=pointer]:
+    - generic [ref=e898]:
+      - generic:
+        - img "moon":
+          - img
+      - generic:
+        - img "sun":
+          - img
+  - generic [ref=e900]:
+    - generic [ref=e901]:
+      - generic [ref=e902]: ⚡
+      - heading "My Graph KB" [level=2] [ref=e903]
+      - text: 基于图谱的检索增强生成框架
+    - generic [ref=e904]:
+      - generic [ref=e910]:
+        - img "user" [ref=e912]:
+          - img [ref=e913]
+        - textbox "用户名" [ref=e915]
+      - generic [ref=e921]:
+        - img "lock" [ref=e923]:
+          - img [ref=e924]
+        - textbox "密码" [ref=e926]
+        - img "eye-invisible" [ref=e928] [cursor=pointer]:
+          - img [ref=e929]
+      - button "登 录" [ref=e937] [cursor=pointer]:
+        - generic [ref=e938]: 登 录
+    - separator [ref=e939]:
+      - generic [ref=e940]: 或
+    - button "thunderbolt 访客模式进入" [ref=e941] [cursor=pointer]:
+      - img "thunderbolt" [ref=e943]:
+        - img [ref=e944]
+      - generic [ref=e946]: 访客模式进入

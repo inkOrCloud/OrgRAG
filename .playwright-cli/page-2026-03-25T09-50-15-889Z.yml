@@ -1,0 +1,33 @@
+- generic [ref=e4]:
+  - switch "moon sun" [ref=e8] [cursor=pointer]:
+    - generic [ref=e10]:
+      - generic:
+        - img "moon":
+          - img
+      - generic:
+        - img "sun":
+          - img
+  - generic [ref=e12]:
+    - generic [ref=e13]:
+      - generic [ref=e14]: ⚡
+      - heading "部门知识库系统" [level=2] [ref=e15]
+      - text: 基于图谱的检索增强生成框架
+    - generic [ref=e16]:
+      - generic [ref=e22]:
+        - img "user" [ref=e24]:
+          - img [ref=e25]
+        - textbox "用户名" [ref=e27]
+      - generic [ref=e33]:
+        - img "lock" [ref=e35]:
+          - img [ref=e36]
+        - textbox "密码" [ref=e38]
+        - img "eye-invisible" [ref=e40] [cursor=pointer]:
+          - img [ref=e41]
+      - button "登 录" [ref=e49] [cursor=pointer]:
+        - generic [ref=e50]: 登 录
+    - separator [ref=e51]:
+      - generic [ref=e52]: 或
+    - button "thunderbolt 访客模式进入" [ref=e53] [cursor=pointer]:
+      - img "thunderbolt" [ref=e55]:
+        - img [ref=e56]
+      - generic [ref=e58]: 访客模式进入

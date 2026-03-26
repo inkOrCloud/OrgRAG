@@ -12,7 +12,8 @@ import {
   Drawer,
   Tag,
   Tooltip,
-  message,
+  message as _msg,
+  App,
   List,
   Badge,
   InputNumber,
@@ -29,18 +30,41 @@ import {
   HistoryOutlined,
   StopOutlined,
   LoadingOutlined,
+  DeleteOutlined,
+  BulbOutlined,
 } from '@ant-design/icons'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { queryStream, queryRag } from '@/api/client'
 import { useSettingsStore } from '@/stores/settings'
-import type { ChatMessage, ReferenceItem, QueryMode, Message } from '@/types'
+import { useChatStore } from '@/stores/chat'
+import { useKBStore } from '@/stores/kb'
+import { useAuthStore } from '@/stores/auth'
+import type { ChatMessage, ReferenceItem, QueryMode, Message, ChatSession } from '@/types'
 
 const { Text, Title } = Typography
 const { TextArea } = Input
 
 function generateId() {
   return Math.random().toString(36).slice(2, 10)
+}
+
+function parseThinking(content: string): { thinking: string; rest: string; thinkingOpen: boolean } {
+  const closeIdx = content.indexOf('</think>')
+  if (closeIdx !== -1) {
+    const openIdx = content.indexOf('<think>')
+    const thinking = openIdx !== -1 ? content.slice(openIdx + 7, closeIdx).trim() : ''
+    const before = openIdx !== -1 ? content.slice(0, openIdx) : ''
+    const rest = (before + content.slice(closeIdx + 8)).trim()
+    return { thinking, rest, thinkingOpen: false }
+  }
+  const openIdx = content.indexOf('<think>')
+  if (openIdx !== -1) {
+    const thinking = content.slice(openIdx + 7).trim()
+    const before = content.slice(0, openIdx)
+    return { thinking, rest: before.trim(), thinkingOpen: true }
+  }
+  return { thinking: '', rest: content, thinkingOpen: false }
 }
 
 const MODE_OPTIONS: { value: QueryMode; label: string; description: string }[] = [
@@ -53,6 +77,7 @@ const MODE_OPTIONS: { value: QueryMode; label: string; description: string }[] =
 ]
 
 function MessageBubble({ msg }: { msg: ChatMessage }) {
+  const { message } = App.useApp()
   const isUser = msg.role === 'user'
 
   const handleCopy = () => {
@@ -100,14 +125,42 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
                   <LoadingOutlined spin style={{ marginRight: 6 }} />
                   思考中...
                 </span>
-              ) : (
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {msg.content}
-                </ReactMarkdown>
-              )}
-              {msg.isStreaming && msg.content && (
-                <span className="streaming-cursor">▋</span>
-              )}
+              ) : (() => {
+                const { thinking, rest, thinkingOpen } = parseThinking(msg.content)
+                return (
+                  <>
+                    {thinking && (
+                      <Collapse
+                        size="small"
+                        style={{ marginBottom: 10, background: 'rgba(0,0,0,0.03)', border: '1px solid #e8e8e8' }}
+                        items={[{
+                          key: 'think',
+                          label: (
+                            <Space size={4}>
+                              <BulbOutlined style={{ color: '#fa8c16' }} />
+                              <Text type="secondary" style={{ fontSize: 12 }}>
+                                思考过程{thinkingOpen ? '（思考中...）' : ''}
+                              </Text>
+                            </Space>
+                          ),
+                          children: (
+                            <div style={{ fontSize: 12, color: '#888', whiteSpace: 'pre-wrap', maxHeight: 300, overflowY: 'auto' }}>
+                              {thinking}
+                              {thinkingOpen && <span className="streaming-cursor">▋</span>}
+                            </div>
+                          ),
+                        }]}
+                      />
+                    )}
+                    {rest && (
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{rest}</ReactMarkdown>
+                    )}
+                    {msg.isStreaming && !thinkingOpen && (
+                      <span className="streaming-cursor">▋</span>
+                    )}
+                  </>
+                )
+              })()}
             </div>
           )}
         </div>
@@ -158,10 +211,12 @@ function HistoryItem({
   item,
   active,
   onClick,
+  onDelete,
 }: {
   item: { id: string; preview: string; timestamp: number; mode: QueryMode }
   active: boolean
   onClick: () => void
+  onDelete: () => void
 }) {
   return (
     <div
@@ -173,35 +228,47 @@ function HistoryItem({
         background: active ? '#1677ff22' : 'transparent',
         borderLeft: active ? '3px solid #1677ff' : '3px solid transparent',
         marginBottom: 4,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 8,
       }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Text ellipsis style={{ fontSize: 13, maxWidth: 160 }}>{item.preview}</Text>
-        <Badge
-          count={item.mode}
-          style={{ backgroundColor: '#1677ff', fontSize: 10 }}
-        />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Text ellipsis style={{ fontSize: 13, maxWidth: 160 }}>{item.preview}</Text>
+          <Badge
+            count={item.mode}
+            style={{ backgroundColor: '#1677ff', fontSize: 10 }}
+          />
+        </div>
+        <Text type="secondary" style={{ fontSize: 11 }}>
+          {new Date(item.timestamp).toLocaleString('zh-CN')}
+        </Text>
       </div>
-      <Text type="secondary" style={{ fontSize: 11 }}>
-        {new Date(item.timestamp).toLocaleTimeString('zh-CN')}
-      </Text>
+      <Button
+        type="text"
+        size="small"
+        danger
+        icon={<DeleteOutlined />}
+        onClick={(e) => { e.stopPropagation(); onDelete() }}
+        style={{ flexShrink: 0 }}
+      />
     </div>
   )
 }
 
-interface ChatSession {
-  id: string
-  messages: ChatMessage[]
-  preview: string
-  timestamp: number
-  mode: QueryMode
-}
-
 export default function QueryPage() {
+  const { message } = App.useApp()
   const { querySettings, updateQuerySettings } = useSettingsStore()
+  const { sessions, activeSessionId, isLoading: isSessionsLoading, saveSession, deleteSession, setActiveSessionId, clearActiveSession, loadSessions } = useChatStore()
+  const { currentKBId } = useKBStore()
+  const { webuiTitle } = useAuthStore()
 
-  const [sessions, setSessions] = useState<ChatSession[]>([])
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
+  // Only show sessions that belong to the current KB
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  const kbSessions = (sessions ?? []).filter((s) => s.kbId === currentKBId)
+
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
@@ -212,9 +279,38 @@ export default function QueryPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
+  // Load sessions from backend on mount and when KB changes
+  useEffect(() => {
+    loadSessions(currentKBId).then(() => {
+      // After sessions are loaded, restore the active session for this KB
+      const store = useChatStore.getState()
+      if (store.activeSessionId) {
+        const session = store.sessions.find(
+          (s) => s.id === store.activeSessionId && s.kbId === currentKBId
+        )
+        if (session) {
+          setMessages(session.messages)
+          return
+        }
+      }
+      setMessages([])
+    })
+  }, [currentKBId]) // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  // When the active KB changes, clear the current conversation
+  // to prevent cross-KB context leakage
+  const prevKBIdRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (prevKBIdRef.current !== null && prevKBIdRef.current !== currentKBId) {
+      setMessages([])
+      clearActiveSession()
+    }
+    prevKBIdRef.current = currentKBId
+  }, [currentKBId])
 
   const buildHistory = useCallback((): Message[] => {
     return messages
@@ -265,6 +361,10 @@ export default function QueryPage() {
         history_turns: querySettings.historyTurns,
       }
 
+      // Track final assistant content outside of state updaters to avoid side-effect antipattern
+      let finalContent = ''
+      let finalReferences: ReferenceItem[] | undefined
+
       if (querySettings.stream) {
         let accumulated = ''
         let references: ReferenceItem[] | undefined
@@ -286,6 +386,8 @@ export default function QueryPage() {
           }
         }
 
+        finalContent = accumulated
+        finalReferences = references
         setMessages((prev) =>
           prev.map((m) =>
             m.id === assistantId
@@ -295,6 +397,8 @@ export default function QueryPage() {
         )
       } else {
         const res = await queryRag(req)
+        finalContent = res.response
+        finalReferences = res.references
         setMessages((prev) =>
           prev.map((m) =>
             m.id === assistantId
@@ -307,16 +411,23 @@ export default function QueryPage() {
       const sessionId = activeSessionId ?? generateId()
       if (!activeSessionId) setActiveSessionId(sessionId)
 
-      setSessions((prev) => {
-        const existing = prev.find((s) => s.id === sessionId)
-        const updated: ChatSession = {
-          id: sessionId,
-          messages: [...(existing?.messages ?? []), userMsg],
-          preview: query.slice(0, 50),
-          timestamp: Date.now(),
-          mode: querySettings.mode,
-        }
-        return [updated, ...prev.filter((s) => s.id !== sessionId)].slice(0, 50)
+      // Build final messages list and save to backend
+      const finalAssistantMsg: ChatMessage = {
+        id: assistantId,
+        role: 'assistant',
+        content: finalContent,
+        isStreaming: false,
+        references: finalReferences,
+        timestamp: assistantMsg.timestamp,
+      }
+      const finalMessages = [...messages, userMsg, finalAssistantMsg]
+      saveSession({
+        id: sessionId,
+        kbId: useKBStore.getState().currentKBId,
+        messages: finalMessages,
+        preview: query.slice(0, 50),
+        timestamp: Date.now(),
+        mode: querySettings.mode,
       })
     } catch (err: unknown) {
       if ((err as { name?: string })?.name === 'AbortError') {
@@ -343,7 +454,7 @@ export default function QueryPage() {
       abortRef.current = null
       setTimeout(() => inputRef.current?.focus(), 100)
     }
-  }, [input, isStreaming, querySettings, buildHistory, activeSessionId])
+  }, [input, isStreaming, querySettings, buildHistory, activeSessionId, messages, saveSession])
 
   const handleStop = () => {
     abortRef.current?.abort()
@@ -354,17 +465,24 @@ export default function QueryPage() {
     setActiveSessionId(null)
   }
 
+  const handleLoadSession = (session: ChatSession) => {
+    setMessages(session.messages)
+    setActiveSessionId(session.id)
+    setHistoryOpen(false)
+  }
+
+  const handleDeleteSession = (id: string) => {
+    deleteSession(id)
+    if (id === activeSessionId) {
+      setMessages([])
+    }
+  }
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       handleSend()
     }
-  }
-
-  const handleLoadSession = (session: ChatSession) => {
-    setMessages(session.messages)
-    setActiveSessionId(session.id)
-    setHistoryOpen(false)
   }
 
   return (
@@ -384,7 +502,7 @@ export default function QueryPage() {
           </Space>
           <Space>
             <Tooltip title="历史会话">
-              <Badge count={sessions.length} size="small">
+              <Badge count={kbSessions.length} size="small">
                 <Button
                   type="text"
                   icon={<HistoryOutlined />}
@@ -420,7 +538,7 @@ export default function QueryPage() {
               opacity: 0.7,
             }}>
               <RobotOutlined style={{ fontSize: 64, color: '#bfbfbf' }} />
-              <Title level={4} style={{ color: '#8c8c8c', margin: 0 }}>向 LightRAG 提问</Title>
+              <Title level={4} style={{ color: '#8c8c8c', margin: 0 }}>向 {webuiTitle || 'LightRAG'} 提问</Title>
               <Text type="secondary">
                 检索模式：<Tag color="blue">{MODE_OPTIONS.find(m => m.value === querySettings.mode)?.label}</Tag>
                 Top-K：<Tag>{querySettings.topK}</Tag>
@@ -637,36 +755,46 @@ export default function QueryPage() {
 
       {/* 历史会话抽屉 */}
       <Drawer
-        title={<Space><HistoryOutlined /> 历史会话（{sessions.length}）</Space>}
+        title={<Space><HistoryOutlined /> 历史会话（{kbSessions.length}）</Space>}
         open={historyOpen}
         onClose={() => setHistoryOpen(false)}
         width={320}
         extra={
-          sessions.length > 0 && (
+          kbSessions.length > 0 && (
             <Button
               danger
               type="text"
               size="small"
-              onClick={() => { setSessions([]); setHistoryOpen(false) }}
+              onClick={() => {
+                useChatStore.getState().clearAll(currentKBId)
+                setMessages([])
+                setHistoryOpen(false)
+              }}
             >
               清空全部
             </Button>
           )
         }
       >
-        {sessions.length === 0 ? (
+        {isSessionsLoading ? (
+          <div style={{ textAlign: 'center', paddingTop: 40 }}>
+            <LoadingOutlined style={{ fontSize: 32, color: '#bfbfbf' }} />
+            <Text type="secondary" style={{ display: 'block', marginTop: 12 }}>加载中…</Text>
+          </div>
+        ) : kbSessions.length === 0 ? (
           <div style={{ textAlign: 'center', paddingTop: 40 }}>
             <HistoryOutlined style={{ fontSize: 40, color: '#bfbfbf' }} />
             <Text type="secondary" style={{ display: 'block', marginTop: 12 }}>暂无历史会话</Text>
           </div>
         ) : (
           <List
-            dataSource={sessions}
+            dataSource={kbSessions}
             renderItem={(session) => (
               <HistoryItem
                 item={session}
                 active={session.id === activeSessionId}
                 onClick={() => handleLoadSession(session)}
+                onDelete={() => handleDeleteSession(session.id)}
               />
             )}
           />

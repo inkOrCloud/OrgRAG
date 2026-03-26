@@ -53,6 +53,21 @@ from lightrag.api.routers.document_routes import (
 from lightrag.api.routers.query_routes import create_query_routes
 from lightrag.api.routers.graph_routes import create_graph_routes
 from lightrag.api.routers.ollama_api import OllamaAPI
+from lightrag.api.routers.user_routes import router as user_router
+from lightrag.api.routers.kb_routes import router as kb_router
+from lightrag.api.routers.org_routes import router as org_router
+from lightrag.api.routers.chat_routes import router as chat_router
+from lightrag.api.user_db import init_user_db
+from lightrag.api.kb_db import init_kb_db
+from lightrag.api.chat_session_db import init_chat_db
+from lightrag.api.kb_manager import (
+    init_kb_manager,
+    get_kb_manager,
+    rag_proxy,
+    doc_manager_proxy,
+    _current_rag,
+    _current_doc_manager,
+)
 
 from lightrag.utils import logger, set_verbose_debug
 from lightrag.kg.shared_storage import (
@@ -344,37 +359,110 @@ def create_app(args):
     # Check if API key is provided either through env var or args
     api_key = os.getenv("LIGHTRAG_API_KEY") or args.key
 
-    # Initialize document manager with workspace support for data isolation
-    doc_manager = DocumentManager(args.input_dir, workspace=args.workspace)
-
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         """Lifespan context manager for startup and shutdown events"""
-        # Store background tasks
         app.state.background_tasks = set()
 
         try:
-            # Initialize database connections
-            # Note: initialize_storages() now auto-initializes pipeline_status for rag.workspace
-            await rag.initialize_storages()
+            import os as _os
 
-            # Data migration regardless of storage implementation
-            await rag.check_and_migrate_data()
+            # ── User database ─────────────────────────────────────────────
+            _db_path = _os.path.join(args.working_dir, "lightrag_users.db")
+            user_db = init_user_db(_db_path)
+            await user_db.initialize()
+            await user_db.migrate_from_env(global_args.auth_accounts)
+
+            # ── Knowledge-base database ───────────────────────────────────
+            kb_db = init_kb_db(_db_path)
+            await kb_db.initialize()
+
+            # ── Chat session database ─────────────────────────────────────
+            chat_db = init_chat_db(_db_path)
+            await chat_db.initialize()
+
+            # ── RAG factory (shared LLM / embedding / rerank functions) ───
+            def _make_rag(workspace: str):
+                return LightRAG(
+                    working_dir=args.working_dir,
+                    workspace=workspace,
+                    llm_model_func=create_llm_model_func(args.llm_binding),
+                    llm_model_name=args.llm_model,
+                    llm_model_max_async=args.max_async,
+                    summary_max_tokens=args.summary_max_tokens,
+                    summary_context_size=args.summary_context_size,
+                    chunk_token_size=int(args.chunk_size),
+                    chunk_overlap_token_size=int(args.chunk_overlap_size),
+                    llm_model_kwargs=create_llm_model_kwargs(
+                        args.llm_binding, args, llm_timeout
+                    ),
+                    embedding_func=embedding_func,
+                    default_llm_timeout=llm_timeout,
+                    default_embedding_timeout=embedding_timeout,
+                    kv_storage=args.kv_storage,
+                    graph_storage=args.graph_storage,
+                    vector_storage=args.vector_storage,
+                    doc_status_storage=args.doc_status_storage,
+                    vector_db_storage_cls_kwargs={
+                        "cosine_better_than_threshold": args.cosine_threshold
+                    },
+                    enable_llm_cache_for_entity_extract=args.enable_llm_cache_for_extract,
+                    enable_llm_cache=args.enable_llm_cache,
+                    rerank_model_func=rerank_model_func,
+                    max_parallel_insert=args.max_parallel_insert,
+                    max_graph_nodes=args.max_graph_nodes,
+                    addon_params={
+                        "language": args.summary_language,
+                        "entity_types": args.entity_types,
+                    },
+                    ollama_server_infos=ollama_server_infos,
+                )
+
+            # ── Knowledge-base manager ────────────────────────────────────
+            kb_manager = init_kb_manager(_make_rag, args.input_dir)
+
+            # Ensure at least one (default) KB exists
+            existing_kbs = await kb_db.list_kbs()
+            if not existing_kbs:
+                default_kb = await kb_db.create_kb(
+                    name="默认知识库",
+                    description="系统默认知识库",
+                    owner_username="system",
+                    workspace=args.workspace,   # "" by default → backward compat
+                )
+                existing_kbs = [default_kb]
+                logger.info("KBManager: created default knowledge base")
+
+            # Load all existing KBs
+            for kb in existing_kbs:
+                if kb.is_active:
+                    await kb_manager.load_kb(kb)
+
+            # The first KB (oldest) is the default
+            default_kb = existing_kbs[0]
+            kb_manager.default_kb_id = default_kb.id
+            logger.info(f"KBManager: default KB is '{default_kb.name}' (id={default_kb.id})")
+
+            # Phase 2 migration removed: org-based access control (Phase C)
+            # now manages KB visibility. Auto-granting all users all KBs
+            # is no longer appropriate.
 
             ASCIIColors.green("\nServer is ready to accept connections! 🚀\n")
 
             yield
 
         finally:
-            # Clean up database connections
-            await rag.finalize_storages()
+            # Finalise all RAG instances
+            try:
+                kb_manager = get_kb_manager()
+                await kb_manager.finalize_all()
+            except RuntimeError:
+                pass  # KB manager was never initialised (startup failed)
 
             if "LIGHTRAG_GUNICORN_MODE" not in os.environ:
-                # Only perform cleanup in Uvicorn single-process mode
-                logger.debug("Unvicorn Mode: finalizing shared storage...")
+                logger.debug("Uvicorn Mode: finalizing shared storage...")
                 finalize_share_data()
             else:
-                # In Gunicorn mode with preload_app=True, cleanup is handled by on_exit hooks
                 logger.debug(
                     "Gunicorn Mode: postpone shared storage finalization to master process"
                 )
@@ -1060,60 +1148,126 @@ def create_app(args):
         name=args.simulated_model_name, tag=args.simulated_model_tag
     )
 
-    # Initialize RAG with unified configuration
-    try:
-        rag = LightRAG(
-            working_dir=args.working_dir,
-            workspace=args.workspace,
-            llm_model_func=create_llm_model_func(args.llm_binding),
-            llm_model_name=args.llm_model,
-            llm_model_max_async=args.max_async,
-            summary_max_tokens=args.summary_max_tokens,
-            summary_context_size=args.summary_context_size,
-            chunk_token_size=int(args.chunk_size),
-            chunk_overlap_token_size=int(args.chunk_overlap_size),
-            llm_model_kwargs=create_llm_model_kwargs(
-                args.llm_binding, args, llm_timeout
-            ),
-            embedding_func=embedding_func,
-            default_llm_timeout=llm_timeout,
-            default_embedding_timeout=embedding_timeout,
-            kv_storage=args.kv_storage,
-            graph_storage=args.graph_storage,
-            vector_storage=args.vector_storage,
-            doc_status_storage=args.doc_status_storage,
-            vector_db_storage_cls_kwargs={
-                "cosine_better_than_threshold": args.cosine_threshold
-            },
-            enable_llm_cache_for_entity_extract=args.enable_llm_cache_for_extract,
-            enable_llm_cache=args.enable_llm_cache,
-            rerank_model_func=rerank_model_func,
-            max_parallel_insert=args.max_parallel_insert,
-            max_graph_nodes=args.max_graph_nodes,
-            addon_params={
-                "language": args.summary_language,
-                "entity_types": args.entity_types,
-            },
-            ollama_server_infos=ollama_server_infos,
-        )
-    except Exception as e:
-        logger.error(f"Failed to initialize LightRAG: {e}")
-        raise
+    # Pre-populate static attributes on the proxy so that OllamaAPI.__init__
+    # and any other app-init-time attribute reads succeed before requests arrive.
+    rag_proxy.set_static_attr("ollama_server_infos", ollama_server_infos)
 
-    # Add routes
+    # Register routes using transparent proxies – no route internals need changing.
+    # The KB routing middleware (below) binds the correct RAG/DocManager per request.
     app.include_router(
-        create_document_routes(
-            rag,
-            doc_manager,
-            api_key,
-        )
+        create_document_routes(rag_proxy, doc_manager_proxy, api_key)
     )
-    app.include_router(create_query_routes(rag, api_key, args.top_k))
-    app.include_router(create_graph_routes(rag, api_key))
+    app.include_router(create_query_routes(rag_proxy, api_key, args.top_k))
+    app.include_router(create_graph_routes(rag_proxy, api_key))
 
-    # Add Ollama API routes
-    ollama_api = OllamaAPI(rag, top_k=args.top_k, api_key=api_key)
+    # Ollama emulation (also routed via proxy)
+    ollama_api = OllamaAPI(rag_proxy, top_k=args.top_k, api_key=api_key)
     app.include_router(ollama_api.router, prefix="/api")
+
+    # User management routes
+    app.include_router(user_router)
+
+    # Knowledge-base management routes
+    app.include_router(kb_router)
+
+    # Organization management routes
+    app.include_router(org_router)
+
+    # Chat session routes
+    app.include_router(chat_router)
+
+    # ── KB routing middleware ─────────────────────────────────────────────────
+    # Reads X-KB-ID request header and binds the matching RAG / DocManager
+    # instance to the async ContextVar for the duration of each request.
+    # Falls back to the default KB when the header is absent or invalid.
+    @app.middleware("http")
+    async def kb_routing_middleware(request, call_next):
+        from starlette.responses import JSONResponse as _JSONResponse
+        from lightrag.api.auth import auth_handler
+        from lightrag.api.kb_db import get_kb_db
+
+        try:
+            mgr = get_kb_manager()
+        except RuntimeError:
+            # KB manager not yet initialised (server still starting up)
+            return await call_next(request)
+
+        explicit_kb_id = request.headers.get("X-KB-ID")
+        kb_id = explicit_kb_id if explicit_kb_id in mgr.loaded_kb_ids else mgr.default_kb_id
+
+        # ── KB access permission check for non-admin JWT users ──────────────
+        # Only applies to routes that actually use the KB (documents/query/graph).
+        # Management routes (/kbs, /users, /orgs, /health, /login …) have their
+        # own auth dependencies and must NOT be blocked here.
+        _path = request.url.path
+        _SKIP_KB_CHECK_PREFIXES = (
+            "/kbs", "/users", "/orgs", "/health", "/login",
+            "/token", "/auth", "/docs", "/openapi", "/webui",
+        )
+        _needs_kb_check = not any(_path.startswith(p) for p in _SKIP_KB_CHECK_PREFIXES)
+
+        if _needs_kb_check:
+            auth_header = request.headers.get("Authorization", "")
+            if auth_header.startswith("Bearer "):
+                token = auth_header[7:]
+                try:
+                    token_info = auth_handler.validate_token(token)
+                    role = token_info.get("role", "user")
+                    username = token_info.get("username", "")
+                    # Admin users always have full access; skip DB check
+                    if role != "admin" and username:
+                        db = get_kb_db()
+                        if not await db.has_kb_access(kb_id, username):
+                            # User explicitly requested a forbidden KB → 403
+                            if explicit_kb_id and explicit_kb_id == kb_id:
+                                return _JSONResponse(
+                                    status_code=403,
+                                    content={"detail": "Access denied to this knowledge base"},
+                                )
+                            # Fell back to default, but user has no access either → 403
+                            return _JSONResponse(
+                                status_code=403,
+                                content={"detail": "You have no access to any knowledge base. Contact an administrator."},
+                            )
+                        # ── Write-access gate ─────────────────────────────────
+                        # PUT / PATCH / DELETE are always writes.
+                        # POST is a write ONLY for specific upload/delete paths;
+                        # read-style POSTs (/paginated, /query, /stream) are allowed.
+                        _READ_POST_SUFFIXES = (
+                            "/paginated", "/query", "/stream",
+                            "/query/stream", "/mix",
+                        )
+                        _is_write = (
+                            request.method in {"PUT", "PATCH", "DELETE"}
+                            or (
+                                request.method == "POST"
+                                and not any(_path.endswith(s) for s in _READ_POST_SUFFIXES)
+                            )
+                        )
+                        if _is_write:
+                            if not await db.has_kb_write_access(kb_id, username):
+                                return _JSONResponse(
+                                    status_code=403,
+                                    content={"detail": "You do not have write permission for this knowledge base"},
+                                )
+                except Exception:
+                    pass  # Invalid / expired token – let the auth dependency handle it
+
+        try:
+            t1, t2 = mgr.set_current_request(kb_id)
+        except KeyError:
+            return _JSONResponse(
+                status_code=404,
+                content={"detail": f"Knowledge base '{kb_id}' not found or not loaded"},
+            )
+
+        try:
+            response = await call_next(request)
+        finally:
+            _current_rag.reset(t1)
+            _current_doc_manager.reset(t2)
+
+        return response
 
     # Custom Swagger UI endpoint for offline support
     @app.get("/docs", include_in_schema=False)
@@ -1142,7 +1296,7 @@ def create_app(args):
         else:
             return RedirectResponse(url="/docs")
 
-    @app.get("/auth-status")
+    @app.get("/auth-status", tags=["system"], summary="Get authentication status")
     async def get_auth_status():
         """Get authentication status and guest token if auth is not configured"""
 
@@ -1172,9 +1326,39 @@ def create_app(args):
             "webui_description": webui_description,
         }
 
-    @app.post("/login")
+    @app.post(
+        "/login",
+        tags=["system"],
+        summary="Login and obtain JWT access token",
+        description=(
+            "Authenticate with username and password (form-encoded). "
+            "Returns a JWT Bearer token valid for `TOKEN_EXPIRE_HOURS` hours. "
+            "Pass the token in the `Authorization: Bearer <token>` header on subsequent requests."
+        ),
+        response_description="JWT access token with auth metadata",
+        responses={
+            200: {
+                "description": "Login successful",
+                "content": {
+                    "application/json": {
+                        "example": {
+                            "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                            "token_type": "bearer",
+                            "auth_mode": "enabled",
+                            "role": "admin",
+                            "core_version": "1.4.11",
+                            "api_version": "...",
+                        }
+                    }
+                },
+            },
+            401: {"description": "Incorrect credentials"},
+        },
+    )
     async def login(form_data: OAuth2PasswordRequestForm = Depends()):
-        if not auth_handler.accounts:
+        from lightrag.api.user_db import get_user_db as _get_user_db
+
+        if not auth_configured:
             # Authentication not configured, return guest token
             guest_token = auth_handler.create_token(
                 username="guest", role="guest", metadata={"auth_mode": "disabled"}
@@ -1189,18 +1373,28 @@ def create_app(args):
                 "webui_title": webui_title,
                 "webui_description": webui_description,
             }
+
         username = form_data.username
-        if not auth_handler.verify_password(username, form_data.password):
+        db = _get_user_db()
+
+        # Try DB-based authentication first (supports roles from DB)
+        db_user = await db.verify_password(username, form_data.password)
+        if db_user:
+            role = db_user.role
+        elif auth_handler.verify_password(username, form_data.password):
+            # Fallback to ENV-based auth (backwards compat, assigns role=user)
+            role = "user"
+        else:
             raise HTTPException(status_code=401, detail="Incorrect credentials")
 
-        # Regular user login
         user_token = auth_handler.create_token(
-            username=username, role="user", metadata={"auth_mode": "enabled"}
+            username=username, role=role, metadata={"auth_mode": "enabled"}
         )
         return {
             "access_token": user_token,
             "token_type": "bearer",
             "auth_mode": "enabled",
+            "role": role,
             "core_version": core_version,
             "api_version": api_version_display,
             "webui_title": webui_title,
@@ -1209,6 +1403,7 @@ def create_app(args):
 
     @app.get(
         "/health",
+        tags=["system"],
         dependencies=[Depends(combined_auth)],
         summary="Get system health and configuration status",
         description="Returns comprehensive system status including WebUI availability, configuration, and operational metrics",
@@ -1372,6 +1567,98 @@ def create_app(args):
         async def webui_redirect_to_docs():
             """Redirect /webui to /docs when WebUI is not available"""
             return RedirectResponse(url="/docs")
+
+    # ── Custom OpenAPI schema post-processing ────────────────────────────────
+    # Injects cross-cutting concerns that FastAPI cannot generate automatically:
+    #   1. ApiKeyAuth security scheme (X-API-Key header)
+    #   2. Dual security declarations on all authenticated endpoints
+    #   3. X-KB-ID header parameter on KB-routing endpoints
+    #   4. LIGHTRAG-WORKSPACE header parameter on workspace-aware endpoints
+    _original_openapi = app.openapi
+
+    def _custom_openapi():
+        if app.openapi_schema:
+            return app.openapi_schema
+
+        schema = _original_openapi()
+
+        components = schema.setdefault("components", {})
+
+        # 1. Register ApiKeyAuth security scheme
+        sec_schemes = components.setdefault("securitySchemes", {})
+        sec_schemes["ApiKeyAuth"] = {
+            "type": "apiKey",
+            "in": "header",
+            "name": "X-API-Key",
+            "description": (
+                "Static API key authentication. "
+                "Configured via `LIGHTRAG_API_KEY` environment variable. "
+                "Pass the key in the `X-API-Key` request header."
+            ),
+        }
+
+        # 2. Register reusable header parameters
+        params = components.setdefault("parameters", {})
+        params["XKbId"] = {
+            "name": "X-KB-ID",
+            "in": "header",
+            "required": False,
+            "schema": {"type": "string"},
+            "description": (
+                "UUID of the knowledge base to route this request to. "
+                "When omitted the server's default knowledge base is used. "
+                "Obtain KB UUIDs from `GET /kbs`."
+            ),
+        }
+        params["LightragWorkspace"] = {
+            "name": "LIGHTRAG-WORKSPACE",
+            "in": "header",
+            "required": False,
+            "schema": {"type": "string", "pattern": "^[a-zA-Z0-9_]*$"},
+            "description": (
+                "Workspace namespace for data isolation. "
+                "Overrides the server-level `WORKSPACE` setting for this request. "
+                "Only alphanumeric characters and underscores are allowed."
+            ),
+        }
+
+        # 3. Paths that receive KB routing (X-KB-ID + LIGHTRAG-WORKSPACE)
+        _KB_ROUTING_PREFIXES = ("/query", "/documents", "/graph", "/graphs")
+
+        for path, methods in schema.get("paths", {}).items():
+            for method, op in methods.items():
+                if method == "parameters" or not isinstance(op, dict):
+                    continue
+
+                # a) Add ApiKeyAuth to every endpoint that already declares security
+                if "security" in op:
+                    existing_schemes = {
+                        list(s.keys())[0] for s in op["security"] if s
+                    }
+                    if "ApiKeyAuth" not in existing_schemes:
+                        op["security"].append({"ApiKeyAuth": []})
+
+                # b) Inject X-KB-ID and LIGHTRAG-WORKSPACE onto KB-routing paths
+                if any(path.startswith(p) for p in _KB_ROUTING_PREFIXES):
+                    existing_param_names = {
+                        p.get("name") for p in op.get("parameters", [])
+                        if isinstance(p, dict)
+                    }
+                    op.setdefault("parameters", [])
+                    if "X-KB-ID" not in existing_param_names:
+                        op["parameters"].append(
+                            {"$ref": "#/components/parameters/XKbId"}
+                        )
+                    if "LIGHTRAG-WORKSPACE" not in existing_param_names:
+                        op["parameters"].append(
+                            {"$ref": "#/components/parameters/LightragWorkspace"}
+                        )
+
+        app.openapi_schema = schema
+        return schema
+
+    app.openapi = _custom_openapi
+    # ── End custom OpenAPI ────────────────────────────────────────────────────
 
     return app
 

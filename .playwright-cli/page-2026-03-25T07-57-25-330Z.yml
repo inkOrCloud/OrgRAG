@@ -1,0 +1,189 @@
+- generic [ref=e590]:
+  - complementary [ref=e591]:
+    - generic [ref=e592]:
+      - generic [ref=e593]:
+        - generic [ref=e594]: ⚡
+        - strong [ref=e596]: My Graph KB
+      - generic [ref=e597]:
+        - generic [ref=e598]: 当前知识库
+        - generic [ref=e599]:
+          - img "database" [ref=e600]:
+            - img [ref=e601]
+          - generic [ref=e603]: 测试知识库
+      - menu [ref=e604]:
+        - menuitem "file-text 文档管理" [ref=e605] [cursor=pointer]:
+          - img "file-text" [ref=e606]:
+            - img [ref=e607]
+          - generic [ref=e609]: 文档管理
+        - menuitem "search 知识库问答" [ref=e610] [cursor=pointer]:
+          - img "search" [ref=e611]:
+            - img [ref=e612]
+          - generic [ref=e614]: 知识库问答
+        - menuitem "api 知识图谱" [ref=e615] [cursor=pointer]:
+          - img "api" [ref=e616]:
+            - img [ref=e617]
+          - generic [ref=e619]: 知识图谱
+      - generic [ref=e621]:
+        - generic [ref=e623]:
+          - generic [ref=e625]:
+            - img "check-circle" [ref=e626]:
+              - img [ref=e627]
+            - superscript [ref=e630]
+          - generic [ref=e631]: 运行正常
+        - generic [ref=e633]: 模型：qwen3.5-flash
+  - generic [ref=e634]:
+    - banner [ref=e635]:
+      - button "menu-fold" [ref=e636] [cursor=pointer]:
+        - img "menu-fold" [ref=e638]:
+          - img [ref=e639]
+      - generic [ref=e641]:
+        - generic [ref=e643]: API v0277
+        - switch "moon sun" [checked] [ref=e645] [cursor=pointer]:
+          - generic [ref=e647]:
+            - generic:
+              - img "moon":
+                - img
+            - generic:
+              - img "sun":
+                - img
+        - img "user" [ref=e650] [cursor=pointer]:
+          - img [ref=e651]
+    - main [ref=e653]:
+      - generic [ref=e654]:
+        - generic [ref=e655]:
+          - heading "文档管理" [level=4] [ref=e656]
+          - button "info-circle 管道状态" [ref=e659] [cursor=pointer]:
+            - img "info-circle" [ref=e661]:
+              - img [ref=e662]
+            - generic [ref=e665]: 管道状态
+        - generic [ref=e666]:
+          - generic [ref=e670]:
+            - generic [ref=e672]:
+              - img "file-text" [ref=e675]:
+                - img [ref=e676]
+              - generic [ref=e678]: 全部
+            - generic [ref=e680]: "3"
+          - generic [ref=e684]:
+            - generic [ref=e686]:
+              - img "check-circle" [ref=e689]:
+                - img [ref=e690]
+              - generic [ref=e693]: 已完成
+            - generic [ref=e695]: "2"
+          - generic [ref=e699]:
+            - generic [ref=e701]:
+              - img "loading" [ref=e704]:
+                - img [ref=e705]
+              - generic [ref=e707]: 处理中
+            - generic [ref=e709]: "1"
+          - generic [ref=e713]:
+            - generic [ref=e715]:
+              - img "clock-circle" [ref=e718]:
+                - img [ref=e719]
+              - generic [ref=e722]: 等待中
+            - generic [ref=e724]: "0"
+          - generic [ref=e728]:
+            - generic [ref=e730]:
+              - img "close-circle" [ref=e733]:
+                - img [ref=e734]
+              - generic [ref=e736]: 失败
+            - generic [ref=e738]: "0"
+          - generic [ref=e741]:
+            - text: 处理进度
+            - progressbar [ref=e742]:
+              - generic "67%" [ref=e746]
+        - generic [ref=e747]:
+          - generic [ref=e748]:
+            - generic [ref=e749]: 按状态筛选：
+            - generic [ref=e751] [cursor=pointer]:
+              - generic [ref=e753]:
+                - combobox [ref=e755]
+                - generic: 全部状态
+              - generic:
+                - img:
+                  - img
+          - button "reload 刷新" [ref=e756] [cursor=pointer]:
+            - img "reload" [ref=e758]:
+              - img [ref=e759]
+            - generic [ref=e761]: 刷新
+        - generic [ref=e766]:
+          - table [ref=e770]:
+            - rowgroup [ref=e778]:
+              - row "文件路径 状态 分块数 大小 更新时间 错误" [ref=e779]:
+                - columnheader "文件路径" [ref=e780]
+                - columnheader "状态" [ref=e781]
+                - columnheader "分块数" [ref=e782]
+                - columnheader "大小" [ref=e783]
+                - columnheader "更新时间" [ref=e784]
+                - columnheader "错误" [ref=e785]
+            - rowgroup [ref=e786]:
+              - row "file-text test.txt loading 处理中 1 0.0 KB 2026/3/25 15:11:16" [ref=e787]:
+                - cell "file-text test.txt" [ref=e788]:
+                  - generic [ref=e789]:
+                    - img "file-text" [ref=e791]:
+                      - img [ref=e792]
+                    - generic [ref=e795]: test.txt
+                - cell "loading 处理中" [ref=e796]:
+                  - generic [ref=e797]:
+                    - img "loading" [ref=e798]:
+                      - img [ref=e799]
+                    - text: 处理中
+                - cell "1" [ref=e801]:
+                  - superscript [ref=e803]:
+                    - generic [ref=e805]: "1"
+                - cell "0.0 KB" [ref=e806]
+                - cell "2026/3/25 15:11:16" [ref=e807]
+                - cell [ref=e808]
+              - row "file-text paperclip-superpowers-config-draft.md check-circle 已完成 2 5.9 KB 2026/3/25 15:05:32" [ref=e809]:
+                - cell "file-text paperclip-superpowers-config-draft.md" [ref=e810]:
+                  - generic [ref=e811]:
+                    - img "file-text" [ref=e813]:
+                      - img [ref=e814]
+                    - generic [ref=e817]: paperclip-superpowers-config-draft.md
+                - cell "check-circle 已完成" [ref=e818]:
+                  - generic [ref=e819]:
+                    - img "check-circle" [ref=e820]:
+                      - img [ref=e821]
+                    - text: 已完成
+                - cell "2" [ref=e824]:
+                  - superscript [ref=e826]:
+                    - generic [ref=e828]: "2"
+                - cell "5.9 KB" [ref=e829]
+                - cell "2026/3/25 15:05:32" [ref=e830]
+                - cell [ref=e831]
+              - row "file-text 个人技术认证登记明细.md check-circle 已完成 1 0.6 KB 2026/3/25 10:12:57" [ref=e832]:
+                - cell "file-text 个人技术认证登记明细.md" [ref=e833]:
+                  - generic [ref=e834]:
+                    - img "file-text" [ref=e836]:
+                      - img [ref=e837]
+                    - generic [ref=e840]: 个人技术认证登记明细.md
+                - cell "check-circle 已完成" [ref=e841]:
+                  - generic [ref=e842]:
+                    - img "check-circle" [ref=e843]:
+                      - img [ref=e844]
+                    - text: 已完成
+                - cell "1" [ref=e847]:
+                  - superscript [ref=e849]:
+                    - generic [ref=e851]: "1"
+                - cell "0.6 KB" [ref=e852]
+                - cell "2026/3/25 10:12:57" [ref=e853]
+                - cell [ref=e854]
+          - list [ref=e855]:
+            - listitem [ref=e856]: 共 3 个文档
+            - listitem "Previous Page" [ref=e857]:
+              - button "left" [disabled] [ref=e858]:
+                - img "left" [ref=e859]:
+                  - img [ref=e860]
+            - listitem "1" [ref=e862] [cursor=pointer]:
+              - generic [ref=e863]: "1"
+            - listitem "Next Page" [ref=e864]:
+              - button "right" [disabled] [ref=e865]:
+                - img "right" [ref=e866]:
+                  - img [ref=e867]
+            - listitem [ref=e869]:
+              - generic "Page Size" [ref=e870] [cursor=pointer]:
+                - generic [ref=e872]:
+                  - combobox "Page Size" [ref=e874]
+                  - generic "20 / page" [ref=e875]
+                - generic:
+                  - img:
+                    - img

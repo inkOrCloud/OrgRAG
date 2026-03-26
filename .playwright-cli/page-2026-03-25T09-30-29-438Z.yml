@@ -1,0 +1,97 @@
+- generic [ref=e4]:
+  - complementary [ref=e5]:
+    - generic [ref=e6]:
+      - generic [ref=e7]:
+        - generic [ref=e8]: ⚡
+        - strong [ref=e10]: 部门知识库系统
+      - generic [ref=e11]:
+        - generic [ref=e12]: 当前知识库
+        - generic [ref=e13]:
+          - img "database" [ref=e14]:
+            - img [ref=e15]
+          - generic [ref=e17]: 默认知识库
+          - generic [ref=e18]: 默认
+      - menu [ref=e19]:
+        - menuitem "file-text 文档管理" [ref=e20] [cursor=pointer]:
+          - img "file-text" [ref=e21]:
+            - img [ref=e22]
+          - generic [ref=e24]: 文档管理
+        - menuitem "search 知识库问答" [ref=e25] [cursor=pointer]:
+          - img "search" [ref=e26]:
+            - img [ref=e27]
+          - generic [ref=e29]: 知识库问答
+        - menuitem "api 知识图谱" [ref=e30] [cursor=pointer]:
+          - img "api" [ref=e31]:
+            - img [ref=e32]
+          - generic [ref=e34]: 知识图谱
+        - menuitem "team 用户管理" [ref=e35] [cursor=pointer]:
+          - img "team" [ref=e36]:
+            - img [ref=e37]
+          - generic [ref=e39]: 用户管理
+        - menuitem "database 知识库管理" [ref=e40] [cursor=pointer]:
+          - img "database" [ref=e41]:
+            - img [ref=e42]
+          - generic [ref=e44]: 知识库管理
+        - menuitem "apartment 组织管理" [ref=e45] [cursor=pointer]:
+          - img "apartment" [ref=e46]:
+            - img [ref=e47]
+          - generic [ref=e49]: 组织管理
+      - generic [ref=e51]:
+        - generic [ref=e53]:
+          - generic [ref=e123]:
+            - img "check-circle" [ref=e124]:
+              - img [ref=e125]
+            - superscript [ref=e128]
+          - generic [ref=e61]: 运行正常
+        - generic [ref=e63]: 模型：qwen3.5-flash
+  - generic [ref=e64]:
+    - banner [ref=e65]:
+      - button "menu-fold" [ref=e66] [cursor=pointer]:
+        - img "menu-fold" [ref=e68]:
+          - img [ref=e69]
+      - generic [ref=e71]:
+        - switch "moon sun" [ref=e73] [cursor=pointer]:
+          - generic [ref=e75]:
+            - generic:
+              - img "moon":
+                - img
+            - generic:
+              - img "sun":
+                - img
+        - img "user" [ref=e78] [cursor=pointer]:
+          - img [ref=e79]
+    - main [ref=e81]:
+      - generic [ref=e83]:
+        - generic [ref=e84]:
+          - generic [ref=e85]:
+            - heading "知识库问答" [level=5] [ref=e87]
+            - generic [ref=e89]: Mix 模式
+          - generic [ref=e90]:
+            - button "history" [ref=e93] [cursor=pointer]:
+              - img "history" [ref=e95]:
+                - img [ref=e96]
+            - button "setting 参数设置" [ref=e99] [cursor=pointer]:
+              - img "setting" [ref=e101]:
+                - img [ref=e102]
+              - generic [ref=e104]: 参数设置
+        - generic [ref=e106]:
+          - img "robot" [ref=e107]:
+            - img [ref=e108]
+          - heading "向 部门知识库系统 提问" [level=4] [ref=e110]
+          - generic [ref=e111]:
+            - text: 检索模式：
+            - generic [ref=e112]: Mix 模式
+            - text: Top-K：
+            - generic [ref=e113]: "60"
+          - generic [ref=e114]:
+            - generic [ref=e115] [cursor=pointer]: 知识库中有哪些主要实体？
+            - generic [ref=e116] [cursor=pointer]: 总结一下关键的实体关系
+            - generic [ref=e117] [cursor=pointer]: 这个知识库涵盖了哪些主题？
+        - generic [ref=e118]:
+          - generic [ref=e119]:
+            - textbox "输入问题，按 Enter 发送，Shift+Enter 换行..." [ref=e120]
+            - button "send" [disabled] [ref=e121]:
+              - generic:
+                - img "send":
+                  - img
+          - generic [ref=e122]: ⚡ 流式输出 · 模式：Mix 模式 · Top-K：60

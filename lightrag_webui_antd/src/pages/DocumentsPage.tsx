@@ -9,7 +9,8 @@ import {
   Modal,
   Upload,
   Input,
-  message,
+  message as _msg,
+  App,
   Tooltip,
   Badge,
   Statistic,
@@ -53,6 +54,8 @@ import {
   getPipelineStatus,
 } from '@/api/client'
 import type { DocStatusResponse, DocStatus } from '@/types'
+import { useKBStore } from '@/stores/kb'
+import { useAuthStore } from '@/stores/auth'
 
 const { Title, Text } = Typography
 const { Dragger } = Upload
@@ -92,6 +95,13 @@ function truncate(str: string, max = 50) {
 }
 
 export default function DocumentsPage() {
+  const { message } = App.useApp()
+  const currentKB = useKBStore((s) => s.currentKB())
+  const currentKBId = useKBStore((s) => s.currentKBId)
+  const isAdmin = useAuthStore((s) => s.isAdmin())
+  // Admin always has write access; non-admin depends on KB's can_write field
+  const canWrite = isAdmin || (currentKB?.can_write ?? false)
+
   const [docs, setDocs] = useState<DocStatusResponse[]>([])
   const [loading, setLoading] = useState(false)
   const [statusCounts, setStatusCounts] = useState<Record<string, number>>({})
@@ -144,7 +154,7 @@ export default function DocumentsPage() {
   useEffect(() => {
     fetchDocs(1)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter])
+  }, [statusFilter, currentKBId])
 
   const fetchPipelineStatus = useCallback(async () => {
     try {
@@ -205,7 +215,7 @@ export default function DocumentsPage() {
       key: 'chunks_count',
       width: 90,
       align: 'center',
-      render: (n?: number) => (n != null ? <Badge count={n} style={{ backgroundColor: '#1677ff' }} showZero /> : '-'),
+      render: (n?: number) => (n != null ? <Badge count={n} overflowCount={9999} style={{ backgroundColor: '#1677ff' }} showZero /> : '-'),
     },
     {
       title: '大小',
@@ -235,12 +245,12 @@ export default function DocumentsPage() {
           </Tooltip>
         ) : null,
     },
-    {
+    ...(canWrite ? [{
       title: '操作',
       key: 'actions',
       width: 80,
-      align: 'center',
-      render: (_, record) => (
+      align: 'center' as const,
+      render: (_: unknown, record: DocStatusResponse) => (
         <Popconfirm
           title="确认删除此文档？"
           description="删除后将移除该文档及其关联的图谱数据，操作不可撤销。"
@@ -252,7 +262,7 @@ export default function DocumentsPage() {
           <Button danger type="text" icon={<DeleteOutlined />} size="small" />
         </Popconfirm>
       ),
-    },
+    }] : []),
   ]
 
   const handleDelete = async (id: string) => {
@@ -268,20 +278,29 @@ export default function DocumentsPage() {
   const handleUpload = async () => {
     if (!fileList.length) return
     setUploading(true)
+    const files = fileList.map((f) => f.originFileObj as File).filter(Boolean)
+    const key = 'upload-progress'
+    message.loading({ content: `正在上传 ${files.length} 个文件...`, key, duration: 0 })
     try {
-      const files = fileList.map((f) => f.originFileObj as File).filter(Boolean)
       const res = await uploadDocuments(files)
-      if (res.status === 'success' || res.status === 'partial_success') {
-        message.success(res.message || '文件上传成功，正在处理中')
+      if (res.status === 'success') {
+        message.success({ content: res.message || '文件上传成功，正在处理中', key })
+        setUploadOpen(false)
+        setFileList([])
+        startPoll()
+        setTimeout(fetchDocs, 1000)
+      } else if (res.status === 'partial_success') {
+        message.warning({ content: res.message, key })
         setUploadOpen(false)
         setFileList([])
         startPoll()
         setTimeout(fetchDocs, 1000)
       } else {
-        message.warning(res.message)
+        message.warning({ content: res.message, key })
       }
-    } catch {
-      message.error('文件上传失败')
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : '文件上传失败'
+      message.error({ content: errMsg, key })
     } finally {
       setUploading(false)
     }
@@ -360,7 +379,7 @@ export default function DocumentsPage() {
     }
   }
 
-  const total = Object.values(statusCounts).reduce((a, b) => a + b, 0)
+  const total = statusCounts['all'] ?? 0
   const processed = statusCounts['processed'] ?? 0
   const processing = (statusCounts['processing'] ?? 0) + (statusCounts['preprocessed'] ?? 0)
   const pending = statusCounts['pending'] ?? 0
@@ -374,23 +393,31 @@ export default function DocumentsPage() {
           <Button icon={<InfoCircleOutlined />} onClick={handleShowPipeline}>
             管道状态
           </Button>
-          <Button icon={<ScanOutlined />} onClick={handleScan}>
-            扫描目录
-          </Button>
-          {failed > 0 && (
+          {canWrite && (
+            <Button icon={<ScanOutlined />} onClick={handleScan}>
+              扫描目录
+            </Button>
+          )}
+          {canWrite && failed > 0 && (
             <Button icon={<ReloadOutlined />} onClick={handleReprocess}>
               重新处理失败项
             </Button>
           )}
-          <Popconfirm title="确认清除 LLM 缓存？" onConfirm={handleClearCache} okText="确认" cancelText="取消">
-            <Button icon={<ClearOutlined />}>清除缓存</Button>
-          </Popconfirm>
-          <Button icon={<PlusOutlined />} onClick={() => setTextOpen(true)}>
-            插入文本
-          </Button>
-          <Button type="primary" icon={<UploadOutlined />} onClick={() => setUploadOpen(true)}>
-            上传文件
-          </Button>
+          {canWrite && (
+            <Popconfirm title="确认清除 LLM 缓存？" onConfirm={handleClearCache} okText="确认" cancelText="取消">
+              <Button icon={<ClearOutlined />}>清除缓存</Button>
+            </Popconfirm>
+          )}
+          {canWrite && (
+            <Button icon={<PlusOutlined />} onClick={() => setTextOpen(true)}>
+              插入文本
+            </Button>
+          )}
+          {canWrite && (
+            <Button type="primary" icon={<UploadOutlined />} onClick={() => setUploadOpen(true)}>
+              上传文件
+            </Button>
+          )}
         </Space>
       </div>
 
@@ -462,7 +489,7 @@ export default function DocumentsPage() {
       </div>
 
       {/* 文档表格 */}
-      <Card styles={{ body: { padding: 0 } }} style={{ borderRadius: 12 }}>
+      <Card styles={{ body: { padding: '0 16px' } }} style={{ borderRadius: 12 }}>
         <Table
           columns={columns}
           dataSource={docs}

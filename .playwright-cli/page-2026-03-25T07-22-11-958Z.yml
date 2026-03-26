@@ -1,0 +1,351 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e73]:
+    - complementary [ref=e74]:
+      - generic [ref=e75]:
+        - generic [ref=e76]:
+          - generic [ref=e77]: ⚡
+          - strong [ref=e79]: My Graph KB
+        - generic [ref=e80]:
+          - generic [ref=e81]: 当前知识库
+          - generic [ref=e82]:
+            - img "database" [ref=e83]:
+              - img [ref=e84]
+            - generic [ref=e86]: 默认知识库
+            - generic [ref=e87]: 默认
+        - menu [ref=e88]:
+          - menuitem "file-text 文档管理" [ref=e89] [cursor=pointer]:
+            - img "file-text" [ref=e90]:
+              - img [ref=e91]
+            - generic [ref=e93]: 文档管理
+          - menuitem "search 知识库问答" [ref=e94] [cursor=pointer]:
+            - img "search" [ref=e95]:
+              - img [ref=e96]
+            - generic [ref=e98]: 知识库问答
+          - menuitem "api 知识图谱" [ref=e99] [cursor=pointer]:
+            - img "api" [ref=e100]:
+              - img [ref=e101]
+            - generic [ref=e103]: 知识图谱
+          - menuitem "team 用户管理" [ref=e104] [cursor=pointer]:
+            - img "team" [ref=e105]:
+              - img [ref=e106]
+            - generic [ref=e108]: 用户管理
+          - menuitem "database 知识库管理" [ref=e109] [cursor=pointer]:
+            - img "database" [ref=e110]:
+              - img [ref=e111]
+            - generic [ref=e113]: 知识库管理
+          - menuitem "apartment 组织管理" [ref=e114] [cursor=pointer]:
+            - img "apartment" [ref=e115]:
+              - img [ref=e116]
+            - generic [ref=e118]: 组织管理
+        - generic [ref=e120]:
+          - generic [ref=e122]:
+            - generic [ref=e952]:
+              - img "check-circle" [ref=e953]:
+                - img [ref=e954]
+              - superscript [ref=e957]
+            - generic [ref=e130]: 运行正常
+          - generic [ref=e132]: 模型：qwen3.5-flash
+    - generic [ref=e133]:
+      - banner [ref=e134]:
+        - button "menu-fold" [ref=e135] [cursor=pointer]:
+          - img "menu-fold" [ref=e137]:
+            - img [ref=e138]
+        - generic [ref=e140]:
+          - generic [ref=e142]: API v0277
+          - switch "moon sun" [ref=e144] [cursor=pointer]:
+            - generic [ref=e146]:
+              - generic:
+                - img "moon":
+                  - img
+              - generic:
+                - img "sun":
+                  - img
+          - img "user" [ref=e149] [cursor=pointer]:
+            - img [ref=e150]
+      - main [ref=e152]:
+        - generic [ref=e553]:
+          - generic [ref=e554]:
+            - heading "知识库管理" [level=4] [ref=e555]
+            - generic [ref=e556]:
+              - button "reload 刷新" [ref=e558] [cursor=pointer]:
+                - img "reload" [ref=e560]:
+                  - img [ref=e561]
+                - generic [ref=e563]: 刷新
+              - button "upload 导入" [ref=e565] [cursor=pointer]:
+                - img "upload" [ref=e567]:
+                  - img [ref=e568]
+                - generic [ref=e570]: 导入
+              - button "plus 新建知识库" [ref=e572] [cursor=pointer]:
+                - img "plus" [ref=e574]:
+                  - img [ref=e575]
+                - generic [ref=e578]: 新建知识库
+          - generic [ref=e583]:
+            - table [ref=e587]:
+              - rowgroup [ref=e588]:
+                - row "知识库名称 描述 归属组织 命名空间 创建者 状态 创建时间 操作" [ref=e589]:
+                  - columnheader "知识库名称" [ref=e590]
+                  - columnheader "描述" [ref=e591]
+                  - columnheader "归属组织" [ref=e592]
+                  - columnheader "命名空间" [ref=e593]
+                  - columnheader "创建者" [ref=e594]
+                  - columnheader "状态" [ref=e595]
+                  - columnheader "创建时间" [ref=e596]
+                  - columnheader "操作" [ref=e597]
+              - rowgroup [ref=e598]:
+                - row "database 默认知识库 默认 check-circle 当前 系统默认知识库 — (default) system 启用 已加载 2026/3/25 01:38:54 切 换 bar-chart 统计 setting 设置 download 导出 edit 编辑 delete 删除" [ref=e599]:
+                  - cell "database 默认知识库 默认 check-circle 当前" [ref=e600]:
+                    - generic [ref=e601]:
+                      - img "database" [ref=e603]:
+                        - img [ref=e604]
+                      - strong [ref=e608]: 默认知识库
+                      - generic [ref=e610]: 默认
+                      - generic [ref=e612]:
+                        - img "check-circle" [ref=e613]:
+                          - img [ref=e614]
+                        - text: 当前
+                  - cell "系统默认知识库" [ref=e617]
+                  - cell "—" [ref=e618]
+                  - cell "(default)" [ref=e619]:
+                    - code [ref=e621]: (default)
+                  - cell "system" [ref=e622]
+                  - cell "启用 已加载" [ref=e623]:
+                    - generic [ref=e624]:
+                      - generic [ref=e626]: 启用
+                      - generic [ref=e629]: 已加载
+                  - cell "2026/3/25 01:38:54" [ref=e630]
+                  - cell "切 换 bar-chart 统计 setting 设置 download 导出 edit 编辑 delete 删除" [ref=e631]:
+                    - generic [ref=e632]:
+                      - button "切 换" [ref=e634] [cursor=pointer]:
+                        - generic [ref=e635]: 切 换
+                      - button "bar-chart 统计" [ref=e637] [cursor=pointer]:
+                        - img "bar-chart" [ref=e639]:
+                          - img [ref=e640]
+                        - generic [ref=e642]: 统计
+                      - button "setting 设置" [ref=e644] [cursor=pointer]:
+                        - img "setting" [ref=e646]:
+                          - img [ref=e647]
+                        - generic [ref=e649]: 设置
+                      - button "download 导出" [ref=e651] [cursor=pointer]:
+                        - img "download" [ref=e653]:
+                          - img [ref=e654]
+                        - generic [ref=e656]: 导出
+                      - button "edit 编辑" [ref=e658] [cursor=pointer]:
+                        - img "edit" [ref=e660]:
+                          - img [ref=e661]
+                        - generic [ref=e663]: 编辑
+                      - button "delete 删除" [disabled] [ref=e665]:
+                        - generic:
+                          - img "delete":
+                            - img
+                        - generic: 删除
+                - row "database 测试知识库 Phase1 test database 研发部 kb_b704d9f7 avalon000 启用 已加载 2026/3/25 01:39:39 切 换 bar-chart 统计 setting 设置 download 导出 edit 编辑 delete 删除" [ref=e666]:
+                  - cell "database 测试知识库" [ref=e667]:
+                    - generic [ref=e668]:
+                      - img "database" [ref=e670]:
+                        - img [ref=e671]
+                      - strong [ref=e675]: 测试知识库
+                  - cell "Phase1 test" [ref=e676]
+                  - cell "database 研发部" [ref=e677]:
+                    - generic [ref=e678]:
+                      - img "database" [ref=e679]:
+                        - img [ref=e680]
+                      - text: 研发部
+                  - cell "kb_b704d9f7" [ref=e682]:
+                    - code [ref=e684]: kb_b704d9f7
+                  - cell "avalon000" [ref=e685]
+                  - cell "启用 已加载" [ref=e686]:
+                    - generic [ref=e687]:
+                      - generic [ref=e689]: 启用
+                      - generic [ref=e692]: 已加载
+                  - cell "2026/3/25 01:39:39" [ref=e693]
+                  - cell "切 换 bar-chart 统计 setting 设置 download 导出 edit 编辑 delete 删除" [ref=e694]:
+                    - generic [ref=e695]:
+                      - button "切 换" [ref=e697] [cursor=pointer]:
+                        - generic [ref=e698]: 切 换
+                      - button "bar-chart 统计" [ref=e700] [cursor=pointer]:
+                        - img "bar-chart" [ref=e702]:
+                          - img [ref=e703]
+                        - generic [ref=e705]: 统计
+                      - button "setting 设置" [ref=e707] [cursor=pointer]:
+                        - img "setting" [ref=e709]:
+                          - img [ref=e710]
+                        - generic [ref=e712]: 设置
+                      - button "download 导出" [ref=e714] [cursor=pointer]:
+                        - img "download" [ref=e716]:
+                          - img [ref=e717]
+                        - generic [ref=e719]: 导出
+                      - button "edit 编辑" [ref=e721] [cursor=pointer]:
+                        - img "edit" [ref=e723]:
+                          - img [ref=e724]
+                        - generic [ref=e726]: 编辑
+                      - button "delete 删除" [ref=e728] [cursor=pointer]:
+                        - img "delete" [ref=e730]:
+                          - img [ref=e731]
+                        - generic [ref=e733]: 删除
+                - row "database 研发部知识库 研发团队专用 database 研发部 kb_7bf517f2 testmember 启用 已加载 2026/3/25 03:53:17 切 换 bar-chart 统计 setting 设置 download 导出 edit 编辑 delete 删除" [ref=e734]:
+                  - cell "database 研发部知识库" [ref=e735]:
+                    - generic [ref=e736]:
+                      - img "database" [ref=e738]:
+                        - img [ref=e739]
+                      - strong [ref=e743]: 研发部知识库
+                  - cell "研发团队专用" [ref=e744]
+                  - cell "database 研发部" [ref=e745]:
+                    - generic [ref=e746]:
+                      - img "database" [ref=e747]:
+                        - img [ref=e748]
+                      - text: 研发部
+                  - cell "kb_7bf517f2" [ref=e750]:
+                    - code [ref=e752]: kb_7bf517f2
+                  - cell "testmember" [ref=e753]
+                  - cell "启用 已加载" [ref=e754]:
+                    - generic [ref=e755]:
+                      - generic [ref=e757]: 启用
+                      - generic [ref=e760]: 已加载
+                  - cell "2026/3/25 03:53:17" [ref=e761]
+                  - cell "切 换 bar-chart 统计 setting 设置 download 导出 edit 编辑 delete 删除" [ref=e762]:
+                    - generic [ref=e763]:
+                      - button "切 换" [ref=e765] [cursor=pointer]:
+                        - generic [ref=e766]: 切 换
+                      - button "bar-chart 统计" [ref=e768] [cursor=pointer]:
+                        - img "bar-chart" [ref=e770]:
+                          - img [ref=e771]
+                        - generic [ref=e773]: 统计
+                      - button "setting 设置" [ref=e775] [cursor=pointer]:
+                        - img "setting" [ref=e777]:
+                          - img [ref=e778]
+                        - generic [ref=e780]: 设置
+                      - button "download 导出" [ref=e782] [cursor=pointer]:
+                        - img "download" [ref=e784]:
+                          - img [ref=e785]
+                        - generic [ref=e787]: 导出
+                      - button "edit 编辑" [ref=e789] [cursor=pointer]:
+                        - img "edit" [ref=e791]:
+                          - img [ref=e792]
+                        - generic [ref=e794]: 编辑
+                      - button "delete 删除" [ref=e796] [cursor=pointer]:
+                        - img "delete" [ref=e798]:
+                          - img [ref=e799]
+                        - generic [ref=e801]: 删除
+                - row "database test2 - database 技术中心（总部） test2_88b5f9ad avalon000 启用 已加载 2026/3/25 03:54:34 切 换 bar-chart 统计 setting 设置 download 导出 edit 编辑 delete 删除" [ref=e802]:
+                  - cell "database test2" [ref=e803]:
+                    - generic [ref=e804]:
+                      - img "database" [ref=e806]:
+                        - img [ref=e807]
+                      - strong [ref=e811]: test2
+                  - cell "-" [ref=e812]
+                  - cell "database 技术中心（总部）" [ref=e813]:
+                    - generic [ref=e814]:
+                      - img "database" [ref=e815]:
+                        - img [ref=e816]
+                      - text: 技术中心（总部）
+                  - cell "test2_88b5f9ad" [ref=e818]:
+                    - code [ref=e820]: test2_88b5f9ad
+                  - cell "avalon000" [ref=e821]
+                  - cell "启用 已加载" [ref=e822]:
+                    - generic [ref=e823]:
+                      - generic [ref=e825]: 启用
+                      - generic [ref=e828]: 已加载
+                  - cell "2026/3/25 03:54:34" [ref=e829]
+                  - cell "切 换 bar-chart 统计 setting 设置 download 导出 edit 编辑 delete 删除" [ref=e830]:
+                    - generic [ref=e831]:
+                      - button "切 换" [ref=e833] [cursor=pointer]:
+                        - generic [ref=e834]: 切 换
+                      - button "bar-chart 统计" [ref=e836] [cursor=pointer]:
+                        - img "bar-chart" [ref=e838]:
+                          - img [ref=e839]
+                        - generic [ref=e841]: 统计
+                      - button "setting 设置" [ref=e843] [cursor=pointer]:
+                        - img "setting" [ref=e845]:
+                          - img [ref=e846]
+                        - generic [ref=e848]: 设置
+                      - button "download 导出" [ref=e850] [cursor=pointer]:
+                        - img "download" [ref=e852]:
+                          - img [ref=e853]
+                        - generic [ref=e855]: 导出
+                      - button "edit 编辑" [ref=e857] [cursor=pointer]:
+                        - img "edit" [ref=e859]:
+                          - img [ref=e860]
+                        - generic [ref=e862]: 编辑
+                      - button "delete 删除" [ref=e864] [cursor=pointer]:
+                        - img "delete" [ref=e866]:
+                          - img [ref=e867]
+                        - generic [ref=e869]: 删除
+                - row "database testmember创建的KB - database 研发部 testmember___kb_1085974f testmember 启用 已加载 2026/3/25 04:01:56 切 换 bar-chart 统计 setting 设置 download 导出 edit 编辑 delete 删除" [ref=e870]:
+                  - cell "database testmember创建的KB" [ref=e871]:
+                    - generic [ref=e872]:
+                      - img "database" [ref=e874]:
+                        - img [ref=e875]
+                      - strong [ref=e879]: testmember创建的KB
+                  - cell "-" [ref=e880]
+                  - cell "database 研发部" [ref=e881]:
+                    - generic [ref=e882]:
+                      - img "database" [ref=e883]:
+                        - img [ref=e884]
+                      - text: 研发部
+                  - cell "testmember___kb_1085974f" [ref=e886]:
+                    - code [ref=e888]: testmember___kb_1085974f
+                  - cell "testmember" [ref=e889]
+                  - cell "启用 已加载" [ref=e890]:
+                    - generic [ref=e891]:
+                      - generic [ref=e893]: 启用
+                      - generic [ref=e896]: 已加载
+                  - cell "2026/3/25 04:01:56" [ref=e897]
+                  - cell "切 换 bar-chart 统计 setting 设置 download 导出 edit 编辑 delete 删除" [ref=e898]:
+                    - generic [ref=e899]:
+                      - button "切 换" [ref=e901] [cursor=pointer]:
+                        - generic [ref=e902]: 切 换
+                      - button "bar-chart 统计" [ref=e904] [cursor=pointer]:
+                        - img "bar-chart" [ref=e906]:
+                          - img [ref=e907]
+                        - generic [ref=e909]: 统计
+                      - button "setting 设置" [ref=e911] [cursor=pointer]:
+                        - img "setting" [ref=e913]:
+                          - img [ref=e914]
+                        - generic [ref=e916]: 设置
+                      - button "download 导出" [ref=e918] [cursor=pointer]:
+                        - img "download" [ref=e920]:
+                          - img [ref=e921]
+                        - generic [ref=e923]: 导出
+                      - button "edit 编辑" [ref=e925] [cursor=pointer]:
+                        - img "edit" [ref=e927]:
+                          - img [ref=e928]
+                        - generic [ref=e930]: 编辑
+                      - button "delete 删除" [ref=e932] [cursor=pointer]:
+                        - img "delete" [ref=e934]:
+                          - img [ref=e935]
+                        - generic [ref=e937]: 删除
+            - list [ref=e938]:
+              - listitem [ref=e939]: 共 5 个知识库
+              - listitem "Previous Page" [ref=e940]:
+                - button "left" [disabled] [ref=e941]:
+                  - img "left" [ref=e942]:
+                    - img [ref=e943]
+              - listitem "1" [ref=e945] [cursor=pointer]:
+                - generic [ref=e946]: "1"
+              - listitem "Next Page" [ref=e947]:
+                - button "right" [disabled] [ref=e948]:
+                  - img "right" [ref=e949]:
+                    - img [ref=e950]
+  - menu [ref=e959]:
+    - menuitem "avalon000 🔑 管理员 vv1.4.10" [disabled] [ref=e960]:
+      - generic [ref=e962]:
+        - strong [ref=e964]: avalon000
+        - generic [ref=e965]: 🔑 管理员 vv1.4.10
+    - separator [ref=e966]
+    - menuitem "idcard 个人中心" [ref=e967] [cursor=pointer]:
+      - img "idcard" [ref=e968]:
+        - img [ref=e969]
+      - generic [ref=e971]: 个人中心
+    - menuitem "setting 系统设置" [ref=e972] [cursor=pointer]:
+      - img "setting" [ref=e973]:
+        - img [ref=e974]
+      - generic [ref=e976]: 系统设置
+    - menuitem "github GitHub 仓库" [ref=e977] [cursor=pointer]:
+      - img "github" [ref=e978]:
+        - img [ref=e979]
+      - generic [ref=e981]: GitHub 仓库
+    - separator [ref=e982]
+    - menuitem "logout 退出登录" [ref=e983] [cursor=pointer]:
+      - img "logout" [ref=e984]:
+        - img [ref=e985]
+      - generic [ref=e987]: 退出登录

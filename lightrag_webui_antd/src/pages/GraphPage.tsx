@@ -12,7 +12,8 @@ import {
   Drawer,
   Descriptions,
   Tag,
-  message,
+  message as _msg,
+  App,
   InputNumber,
   Tooltip,
   Badge,
@@ -36,18 +37,36 @@ import {
   searchGraphLabels,
 } from '@/api/client'
 import type { GraphNode, GraphEdge } from '@/types'
+import { useSettingsStore } from '@/stores/settings'
+import { useKBStore } from '@/stores/kb'
 
 const { Title, Text } = Typography
 const { Search } = Input
 
+const PALETTE_LIGHT = [
+  '#f5222d', '#fa541c', '#fa8c16', '#faad14', '#a0d911',
+  '#52c41a', '#13c2c2', '#1677ff', '#2f54eb', '#722ed1',
+  '#eb2f96', '#08979c', '#237804', '#ad4e00', '#874d00',
+]
+const PALETTE_DARK = [
+  '#ff7875', '#ff9c6e', '#ffc069', '#ffd666', '#d3f261',
+  '#95de64', '#5cdbd3', '#69b1ff', '#85a5ff', '#b37feb',
+  '#ff85c2', '#36cfc9', '#73d13d', '#ffa940', '#ffec3d',
+]
+
 function stringToColor(str: string, isDark: boolean): string {
-  const hue = str.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % 360
-  return isDark
-    ? `hsl(${hue}, 65%, 60%)`
-    : `hsl(${hue}, 60%, 45%)`
+  // Murmur-inspired hash for better distribution
+  let h = 0
+  for (let i = 0; i < str.length; i++) {
+    h = Math.imul(h ^ str.charCodeAt(i), 0x9e3779b9)
+    h ^= h >>> 16
+  }
+  const palette = isDark ? PALETTE_DARK : PALETTE_LIGHT
+  return palette[Math.abs(h) % palette.length]
 }
 
 export default function GraphPage() {
+  const { message } = App.useApp()
   const containerRef = useRef<HTMLDivElement>(null)
   const sigmaRef = useRef<Sigma | null>(null)
   const graphRef = useRef<Graph | null>(null)
@@ -67,14 +86,24 @@ export default function GraphPage() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [nodeEdges, setNodeEdges] = useState<GraphEdge[]>([])
 
-  const isDark = document.documentElement.classList.contains('dark') ||
-    window.matchMedia('(prefers-color-scheme: dark)').matches
+  const isDark = useSettingsStore((s) => s.isDark)
+  const currentKBId = useKBStore((s) => s.currentKBId)
 
   useEffect(() => {
+    // Reset graph state when KB changes
+    setSelectedLabel(null)
+    setLabels([])
+    setSearchQuery('')
+    setSearchResults([])
+    setGraphInfo(null)
+    if (sigmaRef.current) {
+      sigmaRef.current.kill()
+      sigmaRef.current = null
+    }
     getPopularLabels(50)
       .then(setLabels)
       .catch(() => message.error('加载实体标签失败'))
-  }, [])
+  }, [currentKBId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const buildGraph = useCallback(
     async (label: string) => {
@@ -98,7 +127,7 @@ export default function GraphPage() {
           const nodeLabel = node.labels[0] || '未知'
           graph.addNode(node.id, {
             label: node.id,
-            size: 8,
+            size: 14,
             color: stringToColor(nodeLabel, isDark),
             x: Math.random() * 200 - 100,
             y: Math.random() * 200 - 100,
@@ -135,9 +164,9 @@ export default function GraphPage() {
         const sigmaSettings: Partial<SigmaSettings> = {
           defaultNodeColor: isDark ? '#4a9eff' : '#1677ff',
           defaultEdgeColor: isDark ? '#333' : '#e0e0e0',
-          labelSize: 11,
-          labelWeight: '500',
-          labelColor: { color: isDark ? '#e0e0e0' : '#333' },
+          labelSize: 14,
+          labelWeight: '600',
+          labelColor: { color: isDark ? '#e0e0e0' : '#1a1a1a' },
           renderEdgeLabels: false,
           minCameraRatio: 0.05,
           maxCameraRatio: 8,
@@ -221,10 +250,10 @@ export default function GraphPage() {
         <Card size="small" title={<><ApartmentOutlined /> 知识图谱</>} style={{ borderRadius: 12 }}>
           {graphInfo && (
             <Space style={{ marginBottom: 12 }}>
-              <Badge count={graphInfo.nodes} style={{ backgroundColor: '#1677ff' }} showZero>
+              <Badge count={graphInfo.nodes} overflowCount={9999} style={{ backgroundColor: '#1677ff' }} showZero>
                 <Tag>节点</Tag>
               </Badge>
-              <Badge count={graphInfo.edges} style={{ backgroundColor: '#52c41a' }} showZero>
+              <Badge count={graphInfo.edges} overflowCount={9999} style={{ backgroundColor: '#52c41a' }} showZero>
                 <Tag>边</Tag>
               </Badge>
             </Space>

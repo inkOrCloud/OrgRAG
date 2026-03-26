@@ -1,0 +1,125 @@
+- generic [ref=e1]:
+  - generic [ref=e4]:
+    - complementary [ref=e5]:
+      - generic [ref=e6]:
+        - generic [ref=e7]:
+          - generic [ref=e8]: ⚡
+          - strong [ref=e10]: 部门知识库系统
+        - generic [ref=e11]:
+          - generic [ref=e12]: 当前知识库
+          - generic [ref=e13]:
+            - img "database" [ref=e14]:
+              - img [ref=e15]
+            - generic [ref=e17]: 默认知识库
+            - generic [ref=e18]: 默认
+        - menu [ref=e19]:
+          - menuitem "file-text 文档管理" [ref=e20] [cursor=pointer]:
+            - img "file-text" [ref=e21]:
+              - img [ref=e22]
+            - generic [ref=e24]: 文档管理
+          - menuitem "search 知识库问答" [ref=e25] [cursor=pointer]:
+            - img "search" [ref=e26]:
+              - img [ref=e27]
+            - generic [ref=e29]: 知识库问答
+          - menuitem "api 知识图谱" [ref=e30] [cursor=pointer]:
+            - img "api" [ref=e31]:
+              - img [ref=e32]
+            - generic [ref=e34]: 知识图谱
+          - menuitem "team 用户管理" [ref=e35] [cursor=pointer]:
+            - img "team" [ref=e36]:
+              - img [ref=e37]
+            - generic [ref=e39]: 用户管理
+          - menuitem "database 知识库管理" [ref=e40] [cursor=pointer]:
+            - img "database" [ref=e41]:
+              - img [ref=e42]
+            - generic [ref=e44]: 知识库管理
+          - menuitem "apartment 组织管理" [ref=e45] [cursor=pointer]:
+            - img "apartment" [ref=e46]:
+              - img [ref=e47]
+            - generic [ref=e49]: 组织管理
+        - generic [ref=e51]:
+          - generic [ref=e53]:
+            - generic [ref=e55]:
+              - img "check-circle" [ref=e56]:
+                - img [ref=e57]
+              - superscript [ref=e60]
+            - generic [ref=e61]: 运行正常
+          - generic [ref=e63]: 模型：qwen3.5-flash
+    - generic [ref=e64]:
+      - banner [ref=e65]:
+        - button "menu-fold" [ref=e66] [cursor=pointer]:
+          - img "menu-fold" [ref=e68]:
+            - img [ref=e69]
+        - generic [ref=e71]:
+          - switch "moon sun" [ref=e73] [cursor=pointer]:
+            - generic [ref=e75]:
+              - generic:
+                - img "moon":
+                  - img
+              - generic:
+                - img "sun":
+                  - img
+          - img "user" [ref=e78] [cursor=pointer]:
+            - img [ref=e79]
+      - main [ref=e81]:
+        - generic [ref=e83]:
+          - generic [ref=e84]:
+            - generic [ref=e85]:
+              - heading "知识库问答" [level=5] [ref=e87]
+              - generic [ref=e89]: Mix 模式
+            - generic [ref=e90]:
+              - generic [ref=e92]:
+                - button "history" [ref=e93] [cursor=pointer]:
+                  - img "history" [ref=e95]:
+                    - img [ref=e96]
+                - superscript [ref=e98]:
+                  - generic [ref=e100]: "1"
+              - button "setting 参数设置" [ref=e102] [cursor=pointer]:
+                - img "setting" [ref=e104]:
+                  - img [ref=e105]
+                - generic [ref=e107]: 参数设置
+          - generic [ref=e109]:
+            - img "robot" [ref=e110]:
+              - img [ref=e111]
+            - heading "向 部门知识库系统 提问" [level=4] [ref=e113]
+            - generic [ref=e114]:
+              - text: 检索模式：
+              - generic [ref=e115]: Mix 模式
+              - text: Top-K：
+              - generic [ref=e116]: "60"
+            - generic [ref=e117]:
+              - generic [ref=e118] [cursor=pointer]: 知识库中有哪些主要实体？
+              - generic [ref=e119] [cursor=pointer]: 总结一下关键的实体关系
+              - generic [ref=e120] [cursor=pointer]: 这个知识库涵盖了哪些主题？
+          - generic [ref=e121]:
+            - generic [ref=e122]:
+              - textbox "输入问题，按 Enter 发送，Shift+Enter 换行..." [ref=e123]
+              - button "send" [disabled] [ref=e124]:
+                - generic:
+                  - img "send":
+                    - img
+            - generic [ref=e125]: ⚡ 流式输出 · 模式：Mix 模式 · Top-K：60
+  - dialog "history 历史会话（ 1 ）" [ref=e127]:
+    - generic [ref=e128]:
+      - generic [ref=e129]:
+        - button "Close" [ref=e130] [cursor=pointer]:
+          - img "close" [ref=e131]:
+            - img [ref=e132]
+        - generic [ref=e135]:
+          - img "history" [ref=e137]:
+            - img [ref=e138]
+          - generic [ref=e140]: 历史会话（
+          - generic [ref=e141]: "1"
+          - generic [ref=e142]: ）
+      - button "清空全部" [ref=e144] [cursor=pointer]:
+        - generic [ref=e145]: 清空全部
+    - list [ref=e150]:
+      - generic [ref=e151] [cursor=pointer]:
+        - generic [ref=e152]:
+          - generic [ref=e153]:
+            - generic [ref=e154]: 知识库里有哪些文档？
+            - superscript [ref=e156]: mix
+          - text: 2026/3/25 17:36:01
+        - button "delete" [ref=e157]:
+          - img "delete" [ref=e159]:
+            - img [ref=e160]

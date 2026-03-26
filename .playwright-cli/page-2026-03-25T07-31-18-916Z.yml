@@ -1,0 +1,135 @@
+- generic [ref=e4]:
+  - complementary [ref=e5]:
+    - generic [ref=e6]:
+      - generic [ref=e7]:
+        - generic [ref=e8]: ⚡
+        - strong [ref=e10]: My Graph KB
+      - generic [ref=e11]:
+        - generic [ref=e12]: 当前知识库
+        - generic [ref=e13]:
+          - img "database" [ref=e14]:
+            - img [ref=e15]
+          - generic [ref=e17]: 测试知识库
+      - menu [ref=e18]:
+        - menuitem "file-text 文档管理" [ref=e19] [cursor=pointer]:
+          - img "file-text" [ref=e20]:
+            - img [ref=e21]
+          - generic [ref=e23]: 文档管理
+        - menuitem "search 知识库问答" [ref=e24] [cursor=pointer]:
+          - img "search" [ref=e25]:
+            - img [ref=e26]
+          - generic [ref=e28]: 知识库问答
+        - menuitem "api 知识图谱" [ref=e29] [cursor=pointer]:
+          - img "api" [ref=e30]:
+            - img [ref=e31]
+          - generic [ref=e33]: 知识图谱
+        - menuitem "team 用户管理" [ref=e34] [cursor=pointer]:
+          - img "team" [ref=e35]:
+            - img [ref=e36]
+          - generic [ref=e38]: 用户管理
+        - menuitem "database 知识库管理" [ref=e39] [cursor=pointer]:
+          - img "database" [ref=e40]:
+            - img [ref=e41]
+          - generic [ref=e43]: 知识库管理
+        - menuitem "apartment 组织管理" [ref=e44] [cursor=pointer]:
+          - img "apartment" [ref=e45]:
+            - img [ref=e46]
+          - generic [ref=e48]: 组织管理
+      - generic [ref=e50]:
+        - generic [ref=e52]:
+          - generic [ref=e167]:
+            - img "check-circle" [ref=e168]:
+              - img [ref=e169]
+            - superscript [ref=e172]
+          - generic [ref=e60]: 运行正常
+        - generic [ref=e62]: 模型：qwen3.5-flash
+  - generic [ref=e63]:
+    - banner [ref=e64]:
+      - button "menu-fold" [ref=e65] [cursor=pointer]:
+        - img "menu-fold" [ref=e67]:
+          - img [ref=e68]
+      - generic [ref=e70]:
+        - switch "moon sun" [ref=e72] [cursor=pointer]:
+          - generic [ref=e74]:
+            - generic:
+              - img "moon":
+                - img
+            - generic:
+              - img "sun":
+                - img
+        - img "user" [ref=e77] [cursor=pointer]:
+          - img [ref=e78]
+    - main [ref=e80]:
+      - generic [ref=e82]:
+        - generic [ref=e83]:
+          - generic [ref=e84]:
+            - heading "知识库问答" [level=5] [ref=e86]
+            - generic [ref=e88]: Mix 模式
+          - generic [ref=e89]:
+            - button "history" [ref=e92] [cursor=pointer]:
+              - img "history" [ref=e94]:
+                - img [ref=e95]
+            - button "clear" [ref=e133] [cursor=pointer]:
+              - img "clear" [ref=e135]:
+                - img [ref=e136]
+            - button "setting 参数设置" [ref=e98] [cursor=pointer]:
+              - img "setting" [ref=e100]:
+                - img [ref=e101]
+              - generic [ref=e103]: 参数设置
+        - generic [ref=e104]:
+          - generic [ref=e138]:
+            - img "user" [ref=e140]:
+              - img [ref=e141]
+            - generic [ref=e143]:
+              - generic [ref=e144]: 这个知识库里有哪些主要实体？
+              - generic [ref=e145]: 15:30:30
+          - generic [ref=e146]:
+            - img "robot" [ref=e148]:
+              - img [ref=e149]
+            - generic [ref=e151]:
+              - generic [ref=e153]:
+                - button "collapsed bulb 思考过程" [ref=e175] [cursor=pointer]:
+                  - img "collapsed" [ref=e177]:
+                    - img [ref=e178]
+                  - generic [ref=e181]:
+                    - img "bulb" [ref=e183]:
+                      - img [ref=e184]
+                    - generic [ref=e186]: 思考过程
+                - paragraph [ref=e187]: 根据知识库中的知识图谱数据，这个知识库里包含以下几类主要实体：
+                - heading "一、组织与机构实体" [level=2] [ref=e188]
+                - table [ref=e189]:
+                  - rowgroup [ref=e190]:
+                    - row "实体类型 示例" [ref=e191]:
+                      - columnheader "实体类型" [ref=e192]
+                      - columnheader "示例" [ref=e193]
+                  - rowgroup [ref=e194]:
+                    - row "医疗机构 东莞市东坑医院、东莞市石龙博爱医院、东莞市中医院、东莞市妇幼保健院、东莞市人民医院、东莞市莞城医院等" [ref=e195]:
+                      - cell "医疗机构" [ref=e196]:
+                        - strong [ref=e197]: 医疗机构
+                      - cell "东莞市东坑医院、东莞市石龙博爱医院、东莞市中医院、东莞市妇幼保健院、东莞市人民医院、东莞市莞城医院等" [ref=e198]
+                    - row "企事业单位 广东三合电子实业有限公司、东莞市档案馆、东莞市环境信息中心、东莞报业传媒集团有限公司、东莞市科学技术博物馆等" [ref=e199]:
+                      - cell "企事业单位" [ref=e200]:
+                        - strong [ref=e201]: 企事业单位
+                      - cell "广东三合电子实业有限公司、东莞市档案馆、东莞市环境信息中心、东莞报业传媒集团有限公司、东莞市科学技术博物馆等" [ref=e202]
+                    - row "政府及公共机构 东莞市人民政府社会发展研究中心、东莞市公共资源交易中心、东莞市生态环境局、中山市水务局等" [ref=e203]:
+                      - cell "政府及公共机构" [ref=e204]:
+                        - strong [ref=e205]: 政府及公共机构
+                      - cell "东莞市人民政府社会发展研究中心、东莞市公共资源交易中心、东莞市生态环境局、中山市水务局等" [ref=e206]
+                    - row "金融机构 东莞银行、建设银行、中国银行、中国工商银行等" [ref=e207]:
+                      - cell "金融机构" [ref=e208]:
+                        - strong [ref=e209]: 金融机构
+                      - cell "东莞银行、建设银行、中国银行、中国工商银行等" [ref=e210]
+                - heading "二、人员" [level=2] [ref=e211]
+                - generic [ref=e212]: ▋
+              - generic [ref=e158]: 15:30:30
+        - generic [ref=e117]:
+          - generic [ref=e118]:
+            - textbox "输入问题，按 Enter 发送，Shift+Enter 换行..." [disabled] [ref=e119]
+            - button "stop" [ref=e160] [cursor=pointer]:
+              - img "stop" [ref=e161]:
+                - img [ref=e162]
+          - generic [ref=e121]:
+            - text: ⚡ 流式输出 · 模式：Mix 模式 · Top-K：60
+            - img "loading" [ref=e164]:
+              - img [ref=e165]
+            - text: 生成中...

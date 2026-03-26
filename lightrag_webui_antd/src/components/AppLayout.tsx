@@ -13,7 +13,8 @@ import {
   Modal,
   Input,
   Form,
-  message,
+  message as _msg,
+  App,
   Switch,
   Tag,
   Divider,
@@ -31,11 +32,14 @@ import {
   SunOutlined,
   HeartOutlined,
   ApiOutlined,
-  GithubOutlined,
   CheckCircleOutlined,
   ExclamationCircleOutlined,
   LoadingOutlined,
+  TeamOutlined,
+  IdcardOutlined,
+  DatabaseOutlined,
 } from '@ant-design/icons'
+import KBSelector from './KBSelector'
 import { useAuthStore } from '@/stores/auth'
 import { useSettingsStore } from '@/stores/settings'
 import { getHealth } from '@/api/client'
@@ -44,28 +48,23 @@ import type { HealthStatus } from '@/types'
 const { Sider, Header, Content } = Layout
 const { Text } = Typography
 
-const NAV_ITEMS = [
-  {
-    key: '/documents',
-    icon: <FileTextOutlined />,
-    label: '文档管理',
-  },
-  {
-    key: '/query',
-    icon: <SearchOutlined />,
-    label: '知识库问答',
-  },
-  {
-    key: '/graph',
-    icon: <ApartmentOutlined />,
-    label: '知识图谱',
-  },
+const BASE_NAV_ITEMS = [
+  { key: '/documents', icon: <FileTextOutlined />, label: '文档管理' },
+  { key: '/query',     icon: <SearchOutlined />,   label: '知识库问答' },
+  { key: '/graph',     icon: <ApiOutlined />,       label: '知识图谱' },
+]
+
+const ADMIN_NAV_ITEMS = [
+  { key: '/users',         icon: <TeamOutlined />,     label: '用户管理' },
+  { key: '/knowledge-bases', icon: <DatabaseOutlined />, label: '知识库管理' },
+  { key: '/organizations', icon: <ApartmentOutlined />, label: '组织管理' },
 ]
 
 export default function AppLayout() {
+  const { message } = App.useApp()
   const navigate = useNavigate()
   const location = useLocation()
-  const { logout, username, isGuest, webuiTitle, coreVersion, apiVersion } = useAuthStore()
+  const { logout, username, isGuest, webuiTitle, coreVersion, apiVersion, role, isAdmin } = useAuthStore()
   const { isDark, toggleDark, sidebarCollapsed, setSidebarCollapsed, apiBaseUrl, setApiBaseUrl } = useSettingsStore()
 
   const [health, setHealth] = useState<HealthStatus | null>(null)
@@ -102,30 +101,38 @@ export default function AppLayout() {
     setSettingsOpen(false)
   }
 
+  const navItems = [
+    ...BASE_NAV_ITEMS,
+    ...(isAdmin() ? ADMIN_NAV_ITEMS : []),
+  ]
+
   const userMenuItems = [
     {
-      key: 'user',
+      key: 'user-info',
       label: (
         <div style={{ padding: '4px 0' }}>
           <Text strong>{isGuest ? '访客用户' : username}</Text>
           <br />
-          {coreVersion && <Text type="secondary" style={{ fontSize: 11 }}>v{coreVersion}</Text>}
+          <Text type="secondary" style={{ fontSize: 11 }}>
+            {role === 'admin' ? '🔑 管理员' : role === 'guest' ? '👤 访客' : '👤 普通用户'}
+            {coreVersion ? `  v${coreVersion}` : ''}
+          </Text>
         </div>
       ),
       disabled: true,
     },
     { type: 'divider' as const },
     {
+      key: 'profile',
+      icon: <IdcardOutlined />,
+      label: '个人中心',
+      onClick: () => navigate('/profile'),
+    },
+    {
       key: 'settings',
       icon: <SettingOutlined />,
       label: '系统设置',
       onClick: () => setSettingsOpen(true),
-    },
-    {
-      key: 'github',
-      icon: <GithubOutlined />,
-      label: 'GitHub 仓库',
-      onClick: () => window.open('https://github.com/HKUDS/LightRAG', '_blank'),
     },
     { type: 'divider' as const },
     {
@@ -140,12 +147,12 @@ export default function AppLayout() {
   const HealthIndicator = () => {
     if (healthLoading) return <LoadingOutlined style={{ color: '#fa8c16' }} />
     if (healthError) return (
-      <Tooltip title="无法连接到 LightRAG 服务器">
+      <Tooltip title={`无法连接到 ${webuiTitle || 'LightRAG'} 服务器`}>
         <ExclamationCircleOutlined style={{ color: '#ff4d4f' }} />
       </Tooltip>
     )
     return (
-      <Tooltip title={`LightRAG 运行正常${health?.pipeline_busy ? '（管道处理中）' : ''}`}>
+      <Tooltip title={`${webuiTitle || 'LightRAG'} 运行正常${health?.pipeline_busy ? '（管道处理中）' : ''}`}>
         <Badge
           dot
           status={health?.pipeline_busy ? 'processing' : 'success'}
@@ -190,12 +197,15 @@ export default function AppLayout() {
           )}
         </div>
 
+        {/* 知识库选择器 */}
+        <KBSelector collapsed={sidebarCollapsed} />
+
         {/* 导航菜单 */}
         <Menu
           mode="inline"
           selectedKeys={[location.pathname]}
-          style={{ flex: 1, border: 'none', paddingTop: 8 }}
-          items={NAV_ITEMS.map((item) => ({
+          style={{ flex: 1, border: 'none', paddingTop: 4 }}
+          items={navItems.map((item) => ({
             key: item.key,
             icon: item.icon,
             label: item.label,
@@ -352,7 +362,7 @@ export default function AppLayout() {
           <Space>
             <HeartOutlined style={{ color: '#ff4d4f' }} />
             <Text type="secondary" style={{ fontSize: 11 }}>
-              LightRAG — 基于图谱的检索增强生成框架
+              {webuiTitle || 'LightRAG'} — 基于图谱的检索增强生成框架
             </Text>
           </Space>
         </div>

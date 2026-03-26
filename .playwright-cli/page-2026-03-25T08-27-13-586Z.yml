@@ -1,0 +1,227 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e4]:
+    - complementary [ref=e5]:
+      - generic [ref=e6]:
+        - generic [ref=e8]: ⚡
+        - generic "测试知识库" [ref=e9] [cursor=pointer]:
+          - img "database" [ref=e10]:
+            - img [ref=e11]
+        - menu [ref=e13]:
+          - menuitem "file-text 文档管理" [ref=e14] [cursor=pointer]:
+            - img "file-text" [ref=e15]:
+              - img [ref=e16]
+            - generic [ref=e18]: 文档管理
+          - menuitem "search 知识库问答" [ref=e19] [cursor=pointer]:
+            - img "search" [ref=e20]:
+              - img [ref=e21]
+            - generic [ref=e23]: 知识库问答
+          - menuitem "api 知识图谱" [ref=e24] [cursor=pointer]:
+            - img "api" [ref=e25]:
+              - img [ref=e26]
+            - generic [ref=e28]: 知识图谱
+          - menuitem "team 用户管理" [ref=e29] [cursor=pointer]:
+            - img "team" [ref=e30]:
+              - img [ref=e31]
+            - generic [ref=e33]: 用户管理
+          - menuitem "database 知识库管理" [ref=e34] [cursor=pointer]:
+            - img "database" [ref=e35]:
+              - img [ref=e36]
+            - generic [ref=e38]: 知识库管理
+          - menuitem "apartment 组织管理" [ref=e39] [cursor=pointer]:
+            - img "apartment" [ref=e40]:
+              - img [ref=e41]
+            - generic [ref=e43]: 组织管理
+    - generic [ref=e44]:
+      - banner [ref=e45]:
+        - button "menu-unfold" [ref=e46] [cursor=pointer]:
+          - img "menu-unfold" [ref=e48]:
+            - img [ref=e49]
+        - generic [ref=e51]:
+          - switch "moon sun" [ref=e53] [cursor=pointer]:
+            - generic [ref=e55]:
+              - generic:
+                - img "moon":
+                  - img
+              - generic:
+                - img "sun":
+                  - img
+          - img "user" [ref=e58] [cursor=pointer]:
+            - img [ref=e59]
+      - main [ref=e61]:
+        - generic [ref=e62]:
+          - generic [ref=e63]:
+            - heading "apartment 组织管理" [level=4] [ref=e64]:
+              - img "apartment" [ref=e65]:
+                - img [ref=e66]
+              - text: 组织管理
+            - button "plus 新建组织" [ref=e68] [cursor=pointer]:
+              - img "plus" [ref=e70]:
+                - img [ref=e71]
+              - generic [ref=e74]: 新建组织
+          - generic [ref=e75]:
+            - generic [ref=e77]:
+              - generic:
+                - textbox "for screen reader"
+              - tree [ref=e78]:
+                - generic [ref=e81]:
+                  - treeitem "caret-down apartment 技术中心（总部） 0 人" [expanded] [ref=e82]:
+                    - img "caret-down" [ref=e84] [cursor=pointer]:
+                      - img [ref=e85]
+                    - generic [ref=e89] [cursor=pointer]:
+                      - img "apartment" [ref=e91]:
+                        - img [ref=e92]
+                      - generic [ref=e94]: 技术中心（总部）
+                      - generic [ref=e96]: 0 人
+                  - treeitem "caret-down apartment 研发部 3 人" [ref=e227]:
+                    - img "caret-down" [ref=e230] [cursor=pointer]:
+                      - img [ref=e231]
+                    - generic [ref=e235] [cursor=pointer]:
+                      - img "apartment" [ref=e237]:
+                        - img [ref=e238]
+                      - generic [ref=e240]: 研发部
+                      - generic [ref=e242]: 3 人
+                  - treeitem "apartment 2222 0 人" [ref=e243]:
+                    - generic [ref=e248] [cursor=pointer]:
+                      - img "apartment" [ref=e250]:
+                        - img [ref=e251]
+                      - generic [ref=e253]: "2222"
+                      - generic [ref=e255]: 0 人
+            - generic [ref=e103]:
+              - generic [ref=e105]:
+                - generic [ref=e107]:
+                  - generic [ref=e109]:
+                    - img "apartment" [ref=e111]:
+                      - img [ref=e112]
+                    - generic [ref=e114]: 研发部
+                  - generic [ref=e116]:
+                    - button "edit" [ref=e118] [cursor=pointer]:
+                      - img "edit" [ref=e120]:
+                        - img [ref=e121]
+                    - button "delete" [ref=e124] [cursor=pointer]:
+                      - img "delete" [ref=e126]:
+                        - img [ref=e127]
+                - generic [ref=e130]:
+                  - generic [ref=e131]: 描述：研发子部门
+                  - generic [ref=e132]: 成员数：3
+                  - generic [ref=e133]: 创建时间：2026/3/25
+              - generic [ref=e135]:
+                - generic [ref=e137]:
+                  - generic [ref=e139]:
+                    - img "team" [ref=e141]:
+                      - img [ref=e142]
+                    - generic [ref=e144]: 成员列表
+                  - button "plus 添加成员" [ref=e146] [cursor=pointer]:
+                    - img "plus" [ref=e148]:
+                      - img [ref=e149]
+                    - generic [ref=e152]: 添加成员
+                - generic [ref=e156]:
+                  - table [ref=e160]:
+                    - rowgroup [ref=e161]:
+                      - row "用户名 角色 KB写权限 KB读权限 加入时间 操作" [ref=e162]:
+                        - columnheader "用户名" [ref=e163]
+                        - columnheader "角色" [ref=e164]
+                        - columnheader "KB写权限" [ref=e165]
+                        - columnheader "KB读权限" [ref=e166]
+                        - columnheader "加入时间" [ref=e167]
+                        - columnheader "操作" [ref=e168]
+                    - rowgroup [ref=e169]:
+                      - row "user avalon000 成员 已授 无 已授 无 2026/3/25 delete" [ref=e256]:
+                        - cell "user avalon000" [ref=e257]:
+                          - generic [ref=e258]:
+                            - img "user" [ref=e260]:
+                              - img [ref=e261]
+                            - generic [ref=e263]: avalon000
+                        - cell "成员" [ref=e264]:
+                          - generic [ref=e265] [cursor=pointer]:
+                            - generic [ref=e267]:
+                              - combobox [ref=e269]
+                              - generic "成员" [ref=e270]
+                            - generic:
+                              - img:
+                                - img
+                        - cell "已授 无" [ref=e271]:
+                          - switch "已授 无" [ref=e272] [cursor=pointer]:
+                            - generic [ref=e274]:
+                              - generic: 已授
+                              - generic: 无
+                        - cell "已授 无" [ref=e275]:
+                          - switch "已授 无" [ref=e276] [cursor=pointer]:
+                            - generic [ref=e278]:
+                              - generic: 已授
+                              - generic: 无
+                        - cell "2026/3/25" [ref=e279]
+                        - cell "delete" [ref=e280]:
+                          - button "delete" [ref=e281] [cursor=pointer]:
+                            - img "delete" [ref=e283]:
+                              - img [ref=e284]
+                      - row "user testmember 成员 已授 无 已授 无 2026/3/25 delete" [ref=e286]:
+                        - cell "user testmember" [ref=e287]:
+                          - generic [ref=e288]:
+                            - img "user" [ref=e290]:
+                              - img [ref=e291]
+                            - generic [ref=e293]: testmember
+                        - cell "成员" [ref=e294]:
+                          - generic [ref=e295] [cursor=pointer]:
+                            - generic [ref=e297]:
+                              - combobox [ref=e299]
+                              - generic "成员" [ref=e300]
+                            - generic:
+                              - img:
+                                - img
+                        - cell "已授 无" [ref=e301]:
+                          - switch "已授 无" [checked] [ref=e302] [cursor=pointer]:
+                            - generic [ref=e304]:
+                              - generic: 已授
+                              - generic: 无
+                        - cell "已授 无" [ref=e305]:
+                          - switch "已授 无" [checked] [ref=e306] [cursor=pointer]:
+                            - generic [ref=e308]:
+                              - generic: 已授
+                              - generic: 无
+                        - cell "2026/3/25" [ref=e309]
+                        - cell "delete" [ref=e310]:
+                          - button "delete" [ref=e311] [cursor=pointer]:
+                            - img "delete" [ref=e313]:
+                              - img [ref=e314]
+                      - row "user test2 成员 已授 无 已授 无 2026/3/25 delete" [ref=e316]:
+                        - cell "user test2" [ref=e317]:
+                          - generic [ref=e318]:
+                            - img "user" [ref=e320]:
+                              - img [ref=e321]
+                            - generic [ref=e323]: test2
+                        - cell "成员" [ref=e324]:
+                          - generic [ref=e325] [cursor=pointer]:
+                            - generic [ref=e327]:
+                              - combobox [ref=e329]
+                              - generic "成员" [ref=e330]
+                            - generic:
+                              - img:
+                                - img
+                        - cell "已授 无" [ref=e331]:
+                          - switch "已授 无" [ref=e332] [cursor=pointer]:
+                            - generic [ref=e334]:
+                              - generic: 已授
+                              - generic: 无
+                        - cell "已授 无" [ref=e335]:
+                          - switch "已授 无" [checked] [ref=e336] [cursor=pointer]:
+                            - generic [ref=e338]:
+                              - generic: 已授
+                              - generic: 无
+                        - cell "2026/3/25" [ref=e339]
+                        - cell "delete" [ref=e340]:
+                          - button "delete" [ref=e341] [cursor=pointer]:
+                            - img "delete" [ref=e343]:
+                              - img [ref=e344]
+                  - list [ref=e346]:
+                    - listitem "Previous Page" [ref=e347]:
+                      - button "left" [disabled] [ref=e348]:
+                        - img "left" [ref=e349]:
+                          - img [ref=e350]
+                    - listitem "1" [ref=e352] [cursor=pointer]:
+                      - generic [ref=e353]: "1"
+                    - listitem "Next Page" [ref=e354]:
+                      - button "right" [disabled] [ref=e355]:
+                        - img "right" [ref=e356]:
+                          - img [ref=e357]
+  - generic:
+    - generic: "*"

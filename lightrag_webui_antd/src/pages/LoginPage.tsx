@@ -54,7 +54,7 @@ export default function LoginPage() {
           navigate('/', { replace: true })
         }
       })
-      .catch(() => setError('无法连接到 LightRAG 服务器，请检查 API 地址是否正确。'))
+      .catch(() => setError(`无法连接到 ${webuiTitle} 服务器，请检查 API 地址是否正确。`))
       .finally(() => setChecking(false))
   }, [isAuthenticated, navigate, setAuthInfo])
 
@@ -66,6 +66,7 @@ export default function LoginPage() {
       setAuthInfo({
         token: res.access_token,
         isGuest: false,
+        role: res.role,
         username: values.username,
         authMode: res.auth_mode,
         coreVersion: res.core_version,
@@ -118,7 +119,7 @@ export default function LoginPage() {
       }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: 32, marginBottom: 8 }}>⚡</div>
-          <Text type="secondary">正在连接到 LightRAG...</Text>
+          <Text type="secondary">正在连接到 {webuiTitle}...</Text>
         </div>
       </div>
     )
@@ -245,7 +246,7 @@ export default function LoginPage() {
             <Alert
               type="info"
               message="未启用身份验证"
-              description="您可以直接访问 LightRAG，无需输入凭据。"
+              description={`您可以直接访问 ${webuiTitle}，无需输入凭据。`}
               showIcon
             />
             <Button
@@ -256,7 +257,7 @@ export default function LoginPage() {
               onClick={handleGuestLogin}
               style={{ height: 44, borderRadius: 8, fontWeight: 600 }}
             >
-              进入 LightRAG
+              进入 {webuiTitle}
             </Button>
           </Space>
         )}

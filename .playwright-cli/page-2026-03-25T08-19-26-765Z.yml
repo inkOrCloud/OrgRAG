@@ -1,0 +1,142 @@
+- generic [ref=e4]:
+  - complementary [ref=e5]:
+    - generic [ref=e6]:
+      - generic [ref=e8]: ⚡
+      - generic "测试知识库" [ref=e9] [cursor=pointer]:
+        - img "database" [ref=e10]:
+          - img [ref=e11]
+      - menu [ref=e13]:
+        - menuitem "file-text 文档管理" [ref=e14] [cursor=pointer]:
+          - img "file-text" [ref=e15]:
+            - img [ref=e16]
+          - generic [ref=e18]: 文档管理
+        - menuitem "search 知识库问答" [ref=e19] [cursor=pointer]:
+          - img "search" [ref=e20]:
+            - img [ref=e21]
+          - generic [ref=e23]: 知识库问答
+        - menuitem "api 知识图谱" [ref=e24] [cursor=pointer]:
+          - img "api" [ref=e25]:
+            - img [ref=e26]
+          - generic [ref=e28]: 知识图谱
+        - menuitem "team 用户管理" [ref=e29] [cursor=pointer]:
+          - img "team" [ref=e30]:
+            - img [ref=e31]
+          - generic [ref=e33]: 用户管理
+        - menuitem "database 知识库管理" [ref=e34] [cursor=pointer]:
+          - img "database" [ref=e35]:
+            - img [ref=e36]
+          - generic [ref=e38]: 知识库管理
+        - menuitem "apartment 组织管理" [ref=e39] [cursor=pointer]:
+          - img "apartment" [ref=e40]:
+            - img [ref=e41]
+          - generic [ref=e43]: 组织管理
+  - generic [ref=e44]:
+    - banner [ref=e45]:
+      - button "menu-unfold" [ref=e46] [cursor=pointer]:
+        - img "menu-unfold" [ref=e48]:
+          - img [ref=e49]
+      - generic [ref=e51]:
+        - switch "moon sun" [ref=e53] [cursor=pointer]:
+          - generic [ref=e55]:
+            - generic:
+              - img "moon":
+                - img
+            - generic:
+              - img "sun":
+                - img
+        - img "user" [ref=e58] [cursor=pointer]:
+          - img [ref=e59]
+    - main [ref=e61]:
+      - generic [ref=e63]:
+        - generic [ref=e64]:
+          - generic [ref=e65]:
+            - heading "知识库问答" [level=5] [ref=e67]
+            - generic [ref=e69]: Mix 模式
+          - generic [ref=e70]:
+            - generic [ref=e72]:
+              - button "history" [active] [ref=e73] [cursor=pointer]:
+                - img "history" [ref=e75]:
+                  - img [ref=e76]
+              - superscript [ref=e142]:
+                - generic [ref=e144]: "1"
+            - button "clear" [ref=e108] [cursor=pointer]:
+              - img "clear" [ref=e110]:
+                - img [ref=e111]
+            - button "setting 参数设置" [ref=e79] [cursor=pointer]:
+              - img "setting" [ref=e81]:
+                - img [ref=e82]
+              - generic [ref=e84]: 参数设置
+        - generic [ref=e85]:
+          - generic [ref=e113]:
+            - img "user" [ref=e115]:
+              - img [ref=e116]
+            - generic [ref=e118]:
+              - generic [ref=e119]: 这个知识库有哪些主要文档？请简短说明。
+              - generic [ref=e120]: 16:17:34
+          - generic [ref=e121]:
+            - img "robot" [ref=e123]:
+              - img [ref=e124]
+            - generic [ref=e126]:
+              - generic [ref=e128]:
+                - button "collapsed bulb 思考过程" [ref=e147] [cursor=pointer]:
+                  - img "collapsed" [ref=e149]:
+                    - img [ref=e150]
+                  - generic [ref=e153]:
+                    - img "bulb" [ref=e155]:
+                      - img [ref=e156]
+                    - generic [ref=e158]: 思考过程
+                - paragraph [ref=e159]: 根据提供的知识库上下文，该知识库主要包含以下几类文档：
+                - heading "主要文档内容" [level=2] [ref=e160]
+                - heading "1. 知识产权登记清单" [level=3] [ref=e161]
+                - list [ref=e162]:
+                  - listitem [ref=e163]:
+                    - strong [ref=e164]: 文档名称
+                    - text: ：公司知识产权登记清单.md
+                  - listitem [ref=e165]:
+                    - strong [ref=e166]: 主要内容
+                    - text: ：记录了公司的多项软件著作权和专利，包括：
+                    - list [ref=e167]:
+                      - listitem [ref=e168]: D-Lock电子文档安全系统V1.0
+                      - listitem [ref=e169]: WANER信息综合运维管理软件系列
+                      - listitem [ref=e170]: MES面向中小型制造企业管理系统
+                      - listitem [ref=e171]: 项目合同管理系统V1.0
+                      - listitem [ref=e172]: 等级保护综合运维管理系统V1.0
+                      - listitem [ref=e173]: 数据安全迁移系统
+                      - listitem [ref=e174]: 以及广东省健康医疗数据脱敏技术规范等团体标准
+                  - listitem [ref=e175]:
+                    - strong [ref=e176]: 发证机构
+                    - text: ：中华人民共和国国家版权局
+                  - listitem [ref=e177]:
+                    - strong [ref=e178]: 物理形态
+                    - text: ：纸质（正本）为主，部分为电子档
+                - heading "2. 业务合同与采购文件" [level=3] [ref=e179]
+                - list [ref=e180]:
+                  - listitem [ref=e181]: IT运维服务合同（如东莞市档案馆信息系统维护项目合同）
+                  - listitem [ref=e182]: 设备采购合同（如东莞市第六人民医院DELL存储采购合同）
+                  - listitem [ref=e183]: 安全系统升级服务合同（如电子文档安全管理系统升级服务合同书）
+                  - listitem [ref=e184]: 网络安全相关产品采购合同
+                - heading "3. 管理与制度文档" [level=3] [ref=e185]
+                - list [ref=e186]:
+                  - listitem [ref=e187]: 密钥安全管理策略
+                  - listitem [ref=e188]: 建设运行环节实施方案
+                  - listitem [ref=e189]: 管理制度相关文件
+                - separator [ref=e190]
+                - heading "References" [level=3] [ref=e191]
+                - list [ref=e192]:
+                  - listitem [ref=e193]: "[1] 公司知识产权登记清单.md"
+              - button "collapsed 1 个引用来源" [ref=e197] [cursor=pointer]:
+                - img "collapsed" [ref=e199]:
+                  - img [ref=e200]
+                - generic [ref=e203]: 1 个引用来源
+              - button "copy" [ref=e205] [cursor=pointer]:
+                - img "copy" [ref=e207]:
+                  - img [ref=e208]
+              - generic [ref=e133]: 16:17:34
+        - generic [ref=e98]:
+          - generic [ref=e99]:
+            - textbox "输入问题，按 Enter 发送，Shift+Enter 换行..." [ref=e100]
+            - button "send" [disabled] [ref=e210]:
+              - generic:
+                - img "send":
+                  - img
+          - generic [ref=e102]: ⚡ 流式输出 · 模式：Mix 模式 · Top-K：60

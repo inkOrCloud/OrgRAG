@@ -7,13 +7,22 @@ import LoginPage from './pages/LoginPage'
 import DocumentsPage from './pages/DocumentsPage'
 import QueryPage from './pages/QueryPage'
 import GraphPage from './pages/GraphPage'
+import UsersPage from './pages/UsersPage'
+import ProfilePage from './pages/ProfilePage'
+import KnowledgeBasesPage from './pages/KnowledgeBasesPage'
+import OrganizationsPage from './pages/OrganizationsPage'
 import 'antd/dist/reset.css'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuthStore()
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />
-  }
+  if (!isAuthenticated) return <Navigate to="/login" replace />
+  return <>{children}</>
+}
+
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isAdmin } = useAuthStore()
+  if (!isAuthenticated) return <Navigate to="/login" replace />
+  if (!isAdmin()) return <Navigate to="/documents" replace />
   return <>{children}</>
 }
 
@@ -53,6 +62,17 @@ export default function App() {
               <Route path="documents" element={<DocumentsPage />} />
               <Route path="query" element={<QueryPage />} />
               <Route path="graph" element={<GraphPage />} />
+              <Route path="profile" element={<ProfilePage />} />
+              <Route
+                path="users"
+                element={
+                  <AdminRoute>
+                    <UsersPage />
+                  </AdminRoute>
+                }
+              />
+              <Route path="knowledge-bases" element={<KnowledgeBasesPage />} />
+              <Route path="organizations" element={<OrganizationsPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

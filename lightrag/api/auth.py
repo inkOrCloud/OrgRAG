@@ -1,8 +1,10 @@
 from datetime import datetime, timedelta
+from typing import Optional
 
 import jwt
 from dotenv import load_dotenv
-from fastapi import HTTPException, status
+from fastapi import HTTPException, Security, status
+from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel
 
 from ..utils import logger
@@ -142,3 +144,34 @@ class AuthHandler:
 
 
 auth_handler = AuthHandler()
+
+# ── OAuth2 scheme (reused across modules) ───────────────────────────────────
+_oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login", auto_error=False)
+
+
+async def get_current_user(token: str = Security(_oauth2_scheme)) -> dict:
+    """
+    FastAPI dependency: extract and validate the current user from JWT token.
+
+    Returns a dict with keys: username, role, metadata, exp
+    Raises 401 if token is missing or invalid.
+    """
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated. Please login.",
+        )
+    return auth_handler.validate_token(token)
+
+
+async def require_admin(current_user: dict = Security(get_current_user)) -> dict:
+    """
+    FastAPI dependency: require admin role.
+    Raises 403 if the current user is not an admin.
+    """
+    if current_user.get("role") != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin privileges required.",
+        )
+    return current_user

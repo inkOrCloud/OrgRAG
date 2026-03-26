@@ -1,0 +1,364 @@
+- generic [ref=e57]:
+  - complementary [ref=e58]:
+    - generic [ref=e59]:
+      - generic [ref=e60]:
+        - generic [ref=e61]: ⚡
+        - strong [ref=e63]: 部门知识库系统
+      - generic [ref=e64]:
+        - generic [ref=e65]: 当前知识库
+        - generic [ref=e66]:
+          - img "database" [ref=e67]:
+            - img [ref=e68]
+          - generic [ref=e70]: 默认知识库
+          - generic [ref=e71]: 默认
+      - menu [ref=e72]:
+        - menuitem "file-text 文档管理" [ref=e73] [cursor=pointer]:
+          - img "file-text" [ref=e74]:
+            - img [ref=e75]
+          - generic [ref=e77]: 文档管理
+        - menuitem "search 知识库问答" [ref=e78] [cursor=pointer]:
+          - img "search" [ref=e79]:
+            - img [ref=e80]
+          - generic [ref=e82]: 知识库问答
+        - menuitem "api 知识图谱" [ref=e83] [cursor=pointer]:
+          - img "api" [ref=e84]:
+            - img [ref=e85]
+          - generic [ref=e87]: 知识图谱
+        - menuitem "team 用户管理" [ref=e88] [cursor=pointer]:
+          - img "team" [ref=e89]:
+            - img [ref=e90]
+          - generic [ref=e92]: 用户管理
+        - menuitem "database 知识库管理" [ref=e93] [cursor=pointer]:
+          - img "database" [ref=e94]:
+            - img [ref=e95]
+          - generic [ref=e97]: 知识库管理
+        - menuitem "apartment 组织管理" [ref=e98] [cursor=pointer]:
+          - img "apartment" [ref=e99]:
+            - img [ref=e100]
+          - generic [ref=e102]: 组织管理
+      - generic [ref=e104]:
+        - generic [ref=e106]:
+          - generic [ref=e108]:
+            - img "check-circle" [ref=e109]:
+              - img [ref=e110]
+            - superscript [ref=e113]
+          - generic [ref=e114]: 运行正常
+        - generic [ref=e116]: 模型：qwen3.5-flash
+  - generic [ref=e117]:
+    - banner [ref=e118]:
+      - button "menu-fold" [ref=e119] [cursor=pointer]:
+        - img "menu-fold" [ref=e121]:
+          - img [ref=e122]
+      - generic [ref=e124]:
+        - generic [ref=e126]: API v0277
+        - switch "moon sun" [ref=e128] [cursor=pointer]:
+          - generic [ref=e130]:
+            - generic:
+              - img "moon":
+                - img
+            - generic:
+              - img "sun":
+                - img
+        - img "user" [ref=e133] [cursor=pointer]:
+          - img [ref=e134]
+    - main [ref=e136]:
+      - generic [ref=e137]:
+        - generic [ref=e138]:
+          - heading "文档管理" [level=4] [ref=e139]
+          - generic [ref=e140]:
+            - button "info-circle 管道状态" [ref=e142] [cursor=pointer]:
+              - img "info-circle" [ref=e144]:
+                - img [ref=e145]
+              - generic [ref=e148]: 管道状态
+            - button "scan 扫描目录" [ref=e150] [cursor=pointer]:
+              - img "scan" [ref=e152]:
+                - img [ref=e153]
+              - generic [ref=e155]: 扫描目录
+            - button "clear 清除缓存" [ref=e157] [cursor=pointer]:
+              - img "clear" [ref=e159]:
+                - img [ref=e160]
+              - generic [ref=e162]: 清除缓存
+            - button "plus 插入文本" [ref=e164] [cursor=pointer]:
+              - img "plus" [ref=e166]:
+                - img [ref=e167]
+              - generic [ref=e170]: 插入文本
+            - button "upload 上传文件" [ref=e172] [cursor=pointer]:
+              - img "upload" [ref=e174]:
+                - img [ref=e175]
+              - generic [ref=e177]: 上传文件
+        - generic [ref=e178]:
+          - generic [ref=e182]:
+            - generic [ref=e184]:
+              - img "file-text" [ref=e187]:
+                - img [ref=e188]
+              - generic [ref=e190]: 全部
+            - generic [ref=e192]: "9"
+          - generic [ref=e196]:
+            - generic [ref=e198]:
+              - img "check-circle" [ref=e201]:
+                - img [ref=e202]
+              - generic [ref=e205]: 已完成
+            - generic [ref=e207]: "9"
+          - generic [ref=e211]:
+            - generic [ref=e213]:
+              - img "loading" [ref=e216]:
+                - img [ref=e217]
+              - generic [ref=e219]: 处理中
+            - generic [ref=e221]: "0"
+          - generic [ref=e225]:
+            - generic [ref=e227]:
+              - img "clock-circle" [ref=e230]:
+                - img [ref=e231]
+              - generic [ref=e234]: 等待中
+            - generic [ref=e236]: "0"
+          - generic [ref=e240]:
+            - generic [ref=e242]:
+              - img "close-circle" [ref=e245]:
+                - img [ref=e246]
+              - generic [ref=e248]: 失败
+            - generic [ref=e250]: "0"
+          - generic [ref=e253]:
+            - text: 处理进度
+            - progressbar [ref=e254]:
+              - img "check-circle" [ref=e259]:
+                - img [ref=e260]
+        - generic [ref=e262]:
+          - generic [ref=e263]:
+            - generic [ref=e264]: 按状态筛选：
+            - generic [ref=e266] [cursor=pointer]:
+              - generic [ref=e268]:
+                - combobox [ref=e270]
+                - generic: 全部状态
+              - generic:
+                - img:
+                  - img
+          - button "reload 刷新" [ref=e271] [cursor=pointer]:
+            - img "reload" [ref=e273]:
+              - img [ref=e274]
+            - generic [ref=e276]: 刷新
+        - generic [ref=e281]:
+          - table [ref=e285]:
+            - rowgroup [ref=e294]:
+              - row "文件路径 状态 分块数 大小 更新时间 错误 操作" [ref=e295]:
+                - columnheader "文件路径" [ref=e296]
+                - columnheader "状态" [ref=e297]
+                - columnheader "分块数" [ref=e298]
+                - columnheader "大小" [ref=e299]
+                - columnheader "更新时间" [ref=e300]
+                - columnheader "错误" [ref=e301]
+                - columnheader "操作" [ref=e302]
+            - rowgroup [ref=e303]:
+              - row "file-text unknown_source check-circle 已完成 1 0.1 KB 2026/3/25 16:14:49 delete" [ref=e304]:
+                - cell "file-text unknown_source" [ref=e305]:
+                  - generic [ref=e306]:
+                    - img "file-text" [ref=e308]:
+                      - img [ref=e309]
+                    - generic [ref=e312]: unknown_source
+                - cell "check-circle 已完成" [ref=e313]:
+                  - generic [ref=e314]:
+                    - img "check-circle" [ref=e315]:
+                      - img [ref=e316]
+                    - text: 已完成
+                - cell "1" [ref=e319]:
+                  - superscript [ref=e321]:
+                    - generic [ref=e323]: "1"
+                - cell "0.1 KB" [ref=e324]
+                - cell "2026/3/25 16:14:49" [ref=e325]
+                - cell [ref=e326]
+                - cell "delete" [ref=e327]:
+                  - button "delete" [ref=e328] [cursor=pointer]:
+                    - img "delete" [ref=e330]:
+                      - img [ref=e331]
+              - row "file-text playwright_upload_test.txt check-circle 已完成 1 0.1 KB 2026/3/25 16:12:38 delete" [ref=e333]:
+                - cell "file-text playwright_upload_test.txt" [ref=e334]:
+                  - generic [ref=e335]:
+                    - img "file-text" [ref=e337]:
+                      - img [ref=e338]
+                    - generic [ref=e341]: playwright_upload_test.txt
+                - cell "check-circle 已完成" [ref=e342]:
+                  - generic [ref=e343]:
+                    - img "check-circle" [ref=e344]:
+                      - img [ref=e345]
+                    - text: 已完成
+                - cell "1" [ref=e348]:
+                  - superscript [ref=e350]:
+                    - generic [ref=e352]: "1"
+                - cell "0.1 KB" [ref=e353]
+                - cell "2026/3/25 16:12:38" [ref=e354]
+                - cell [ref=e355]
+                - cell "delete" [ref=e356]:
+                  - button "delete" [ref=e357] [cursor=pointer]:
+                    - img "delete" [ref=e359]:
+                      - img [ref=e360]
+              - row "file-text paperclip-superpowers-config-draft.md check-circle 已完成 2 5.9 KB 2026/3/25 14:24:46 delete" [ref=e362]:
+                - cell "file-text paperclip-superpowers-config-draft.md" [ref=e363]:
+                  - generic [ref=e364]:
+                    - img "file-text" [ref=e366]:
+                      - img [ref=e367]
+                    - generic [ref=e370]: paperclip-superpowers-config-draft.md
+                - cell "check-circle 已完成" [ref=e371]:
+                  - generic [ref=e372]:
+                    - img "check-circle" [ref=e373]:
+                      - img [ref=e374]
+                    - text: 已完成
+                - cell "2" [ref=e377]:
+                  - superscript [ref=e379]:
+                    - generic [ref=e381]: "2"
+                - cell "5.9 KB" [ref=e382]
+                - cell "2026/3/25 14:24:46" [ref=e383]
+                - cell [ref=e384]
+                - cell "delete" [ref=e385]:
+                  - button "delete" [ref=e386] [cursor=pointer]:
+                    - img "delete" [ref=e388]:
+                      - img [ref=e389]
+              - row "file-text test_upload.txt check-circle 已完成 1 0.0 KB 2026/3/25 10:08:54 delete" [ref=e391]:
+                - cell "file-text test_upload.txt" [ref=e392]:
+                  - generic [ref=e393]:
+                    - img "file-text" [ref=e395]:
+                      - img [ref=e396]
+                    - generic [ref=e399]: test_upload.txt
+                - cell "check-circle 已完成" [ref=e400]:
+                  - generic [ref=e401]:
+                    - img "check-circle" [ref=e402]:
+                      - img [ref=e403]
+                    - text: 已完成
+                - cell "1" [ref=e406]:
+                  - superscript [ref=e408]:
+                    - generic [ref=e410]: "1"
+                - cell "0.0 KB" [ref=e411]
+                - cell "2026/3/25 10:08:54" [ref=e412]
+                - cell [ref=e413]
+                - cell "delete" [ref=e414]:
+                  - button "delete" [ref=e415] [cursor=pointer]:
+                    - img "delete" [ref=e417]:
+                      - img [ref=e418]
+              - row "file-text 4-ZD01-02 广东网安项目合同记录清单1 .md check-circle 已完成 4 5 4 812.5 KB 2026/3/20 13:38:41 delete" [ref=e420]:
+                - cell "file-text 4-ZD01-02 广东网安项目合同记录清单1 .md" [ref=e421]:
+                  - generic [ref=e422]:
+                    - img "file-text" [ref=e424]:
+                      - img [ref=e425]
+                    - generic [ref=e428]: 4-ZD01-02 广东网安项目合同记录清单1 .md
+                - cell "check-circle 已完成" [ref=e429]:
+                  - generic [ref=e430]:
+                    - img "check-circle" [ref=e431]:
+                      - img [ref=e432]
+                    - text: 已完成
+                - cell "4 5 4" [ref=e435]:
+                  - superscript [ref=e437]:
+                    - generic [ref=e438]:
+                      - generic [ref=e439]: "4"
+                      - generic [ref=e440]: "5"
+                      - generic [ref=e441]: "4"
+                - cell "812.5 KB" [ref=e442]
+                - cell "2026/3/20 13:38:41" [ref=e443]
+                - cell [ref=e444]
+                - cell "delete" [ref=e445]:
+                  - button "delete" [ref=e446] [cursor=pointer]:
+                    - img "delete" [ref=e448]:
+                      - img [ref=e449]
+              - row "file-text ...n_《信息安全技术_信息系统密码应用基本要求》GBT_39786-2021_2034572656451194880.md check-circle 已完成 1 0 15.9 KB 2026/3/19 18:16:16 delete" [ref=e451]:
+                - cell "file-text ...n_《信息安全技术_信息系统密码应用基本要求》GBT_39786-2021_2034572656451194880.md" [ref=e452]:
+                  - generic [ref=e453]:
+                    - img "file-text" [ref=e455]:
+                      - img [ref=e456]
+                    - generic [ref=e459]: ...n_《信息安全技术_信息系统密码应用基本要求》GBT_39786-2021_2034572656451194880.md
+                - cell "check-circle 已完成" [ref=e460]:
+                  - generic [ref=e461]:
+                    - img "check-circle" [ref=e462]:
+                      - img [ref=e463]
+                    - text: 已完成
+                - cell "1 0" [ref=e466]:
+                  - superscript [ref=e468]:
+                    - generic [ref=e469]:
+                      - generic [ref=e470]: "1"
+                      - generic [ref=e471]: "0"
+                - cell "15.9 KB" [ref=e472]
+                - cell "2026/3/19 18:16:16" [ref=e473]
+                - cell [ref=e474]
+                - cell "delete" [ref=e475]:
+                  - button "delete" [ref=e476] [cursor=pointer]:
+                    - img "delete" [ref=e478]:
+                      - img [ref=e479]
+              - row "file-text 公司知识产权登记清单.md check-circle 已完成 4 6.7 KB 2026/3/18 18:03:45 delete" [ref=e481]:
+                - cell "file-text 公司知识产权登记清单.md" [ref=e482]:
+                  - generic [ref=e483]:
+                    - img "file-text" [ref=e485]:
+                      - img [ref=e486]
+                    - generic [ref=e489]: 公司知识产权登记清单.md
+                - cell "check-circle 已完成" [ref=e490]:
+                  - generic [ref=e491]:
+                    - img "check-circle" [ref=e492]:
+                      - img [ref=e493]
+                    - text: 已完成
+                - cell "4" [ref=e496]:
+                  - superscript [ref=e498]:
+                    - generic [ref=e500]: "4"
+                - cell "6.7 KB" [ref=e501]
+                - cell "2026/3/18 18:03:45" [ref=e502]
+                - cell [ref=e503]
+                - cell "delete" [ref=e504]:
+                  - button "delete" [ref=e505] [cursor=pointer]:
+                    - img "delete" [ref=e507]:
+                      - img [ref=e508]
+              - row "file-text 公司证书登记明细.md check-circle 已完成 5 7.7 KB 2026/3/18 18:03:39 delete" [ref=e510]:
+                - cell "file-text 公司证书登记明细.md" [ref=e511]:
+                  - generic [ref=e512]:
+                    - img "file-text" [ref=e514]:
+                      - img [ref=e515]
+                    - generic [ref=e518]: 公司证书登记明细.md
+                - cell "check-circle 已完成" [ref=e519]:
+                  - generic [ref=e520]:
+                    - img "check-circle" [ref=e521]:
+                      - img [ref=e522]
+                    - text: 已完成
+                - cell "5" [ref=e525]:
+                  - superscript [ref=e527]:
+                    - generic [ref=e529]: "5"
+                - cell "7.7 KB" [ref=e530]
+                - cell "2026/3/18 18:03:39" [ref=e531]
+                - cell [ref=e532]
+                - cell "delete" [ref=e533]:
+                  - button "delete" [ref=e534] [cursor=pointer]:
+                    - img "delete" [ref=e536]:
+                      - img [ref=e537]
+              - row "file-text 个人技术认证登记明细.md check-circle 已完成 1 0.6 KB 2026/3/18 17:57:40 delete" [ref=e539]:
+                - cell "file-text 个人技术认证登记明细.md" [ref=e540]:
+                  - generic [ref=e541]:
+                    - img "file-text" [ref=e543]:
+                      - img [ref=e544]
+                    - generic [ref=e547]: 个人技术认证登记明细.md
+                - cell "check-circle 已完成" [ref=e548]:
+                  - generic [ref=e549]:
+                    - img "check-circle" [ref=e550]:
+                      - img [ref=e551]
+                    - text: 已完成
+                - cell "1" [ref=e554]:
+                  - superscript [ref=e556]:
+                    - generic [ref=e558]: "1"
+                - cell "0.6 KB" [ref=e559]
+                - cell "2026/3/18 17:57:40" [ref=e560]
+                - cell [ref=e561]
+                - cell "delete" [ref=e562]:
+                  - button "delete" [ref=e563] [cursor=pointer]:
+                    - img "delete" [ref=e565]:
+                      - img [ref=e566]
+          - list [ref=e568]:
+            - listitem [ref=e569]: 共 9 个文档
+            - listitem "Previous Page" [ref=e570]:
+              - button "left" [disabled] [ref=e571]:
+                - img "left" [ref=e572]:
+                  - img [ref=e573]
+            - listitem "1" [ref=e575] [cursor=pointer]:
+              - generic [ref=e576]: "1"
+            - listitem "Next Page" [ref=e577]:
+              - button "right" [disabled] [ref=e578]:
+                - img "right" [ref=e579]:
+                  - img [ref=e580]
+            - listitem [ref=e582]:
+              - generic "Page Size" [ref=e583] [cursor=pointer]:
+                - generic [ref=e585]:
+                  - combobox "Page Size" [ref=e587]
+                  - generic "20 / page" [ref=e588]
+                - generic:
+                  - img:
+                    - img

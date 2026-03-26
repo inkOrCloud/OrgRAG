@@ -283,7 +283,32 @@ class OllamaAPI:
             )
 
         @self.router.post(
-            "/generate", dependencies=[Depends(combined_auth)], include_in_schema=True
+            "/generate",
+            dependencies=[Depends(combined_auth)],
+            include_in_schema=True,
+            summary="Ollama-compatible generate completion",
+            description=(
+                "Emulates the Ollama `/api/generate` endpoint. "
+                "Forwards the prompt directly to the underlying LLM **without** RAG retrieval. "
+                "Use `/api/chat` for LightRAG-powered queries. "
+                "Accepts both `application/json` and `application/octet-stream` content types."
+            ),
+            openapi_extra={
+                "requestBody": {
+                    "required": True,
+                    "content": {
+                        "application/json": {
+                            "schema": {"$ref": "#/components/schemas/OllamaGenerateRequest"},
+                            "example": {
+                                "model": "lightrag:latest",
+                                "prompt": "Why is the sky blue?",
+                                "stream": False,
+                                "options": {"temperature": 0.7},
+                            },
+                        }
+                    },
+                }
+            },
         )
         async def generate(raw_request: Request):
             """Handle generate completion requests acting as an Ollama model
@@ -460,7 +485,43 @@ class OllamaAPI:
                 raise HTTPException(status_code=500, detail=str(e))
 
         @self.router.post(
-            "/chat", dependencies=[Depends(combined_auth)], include_in_schema=True
+            "/chat",
+            dependencies=[Depends(combined_auth)],
+            include_in_schema=True,
+            summary="Ollama-compatible chat completion (LightRAG-powered)",
+            description=(
+                "Emulates the Ollama `/api/chat` endpoint and routes messages through the "
+                "LightRAG query engine. The query mode is selected by a prefix in the last "
+                "user message:\n\n"
+                "| Prefix | Mode |\n"
+                "|--------|------|\n"
+                "| `/local` | local |\n"
+                "| `/global` | global |\n"
+                "| `/hybrid` | hybrid |\n"
+                "| `/naive` | naive |\n"
+                "| `/mix` | mix |\n"
+                "| `/bypass` | Direct LLM, bypass RAG |\n"
+                "| `/context` | Return retrieved context only |\n"
+                "| *(no prefix)* | hybrid (default) |\n\n"
+                "Accepts both `application/json` and `application/octet-stream` content types."
+            ),
+            openapi_extra={
+                "requestBody": {
+                    "required": True,
+                    "content": {
+                        "application/json": {
+                            "schema": {"$ref": "#/components/schemas/OllamaChatRequest"},
+                            "example": {
+                                "model": "lightrag:latest",
+                                "messages": [
+                                    {"role": "user", "content": "/mix What is LightRAG?"}
+                                ],
+                                "stream": True,
+                            },
+                        }
+                    },
+                }
+            },
         )
         async def chat(raw_request: Request):
             """Process chat completion requests by acting as an Ollama model.

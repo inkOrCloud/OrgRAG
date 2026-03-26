@@ -1,0 +1,129 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e643]:
+    - complementary [ref=e644]:
+      - generic [ref=e645]:
+        - generic [ref=e647]: ⚡
+        - generic "测试知识库" [ref=e856] [cursor=pointer]:
+          - img "database" [ref=e857]:
+            - img [ref=e858]
+        - menu [ref=e657]:
+          - menuitem "file-text 文档管理" [ref=e658] [cursor=pointer]:
+            - img "file-text" [ref=e659]:
+              - img [ref=e660]
+            - generic [ref=e662]: 文档管理
+          - menuitem "search 知识库问答" [ref=e663] [cursor=pointer]:
+            - img "search" [ref=e664]:
+              - img [ref=e665]
+            - generic [ref=e667]: 知识库问答
+          - menuitem "api 知识图谱" [ref=e668] [cursor=pointer]:
+            - img "api" [ref=e669]:
+              - img [ref=e670]
+            - generic [ref=e672]: 知识图谱
+    - generic [ref=e687]:
+      - banner [ref=e688]:
+        - button "menu-unfold" [ref=e860] [cursor=pointer]:
+          - img "menu-unfold" [ref=e861]:
+            - img [ref=e862]
+        - generic [ref=e694]:
+          - generic [ref=e696]: API v0277
+          - switch "moon sun" [ref=e698] [cursor=pointer]:
+            - generic [ref=e700]:
+              - generic:
+                - img "moon":
+                  - img
+              - generic:
+                - img "sun":
+                  - img
+          - img "user" [ref=e703] [cursor=pointer]:
+            - img [ref=e704]
+      - main [ref=e706]:
+        - generic [ref=e707]:
+          - generic [ref=e708]:
+            - heading "文档管理" [level=4] [ref=e709]
+            - button "info-circle 管道状态" [ref=e712] [cursor=pointer]:
+              - img "info-circle" [ref=e714]:
+                - img [ref=e715]
+              - generic [ref=e718]: 管道状态
+          - generic [ref=e719]:
+            - generic [ref=e723]:
+              - generic [ref=e725]:
+                - img "file-text" [ref=e728]:
+                  - img [ref=e729]
+                - generic [ref=e731]: 全部
+              - generic [ref=e733]: "0"
+            - generic [ref=e737]:
+              - generic [ref=e739]:
+                - img "check-circle" [ref=e742]:
+                  - img [ref=e743]
+                - generic [ref=e746]: 已完成
+              - generic [ref=e748]: "0"
+            - generic [ref=e752]:
+              - generic [ref=e754]:
+                - img "loading" [ref=e757]:
+                  - img [ref=e758]
+                - generic [ref=e760]: 处理中
+              - generic [ref=e762]: "0"
+            - generic [ref=e766]:
+              - generic [ref=e768]:
+                - img "clock-circle" [ref=e771]:
+                  - img [ref=e772]
+                - generic [ref=e775]: 等待中
+              - generic [ref=e777]: "0"
+            - generic [ref=e781]:
+              - generic [ref=e783]:
+                - img "close-circle" [ref=e786]:
+                  - img [ref=e787]
+                - generic [ref=e789]: 失败
+              - generic [ref=e791]: "0"
+          - generic [ref=e792]:
+            - generic [ref=e793]:
+              - generic [ref=e794]: 按状态筛选：
+              - generic [ref=e796] [cursor=pointer]:
+                - generic [ref=e798]:
+                  - combobox [ref=e800]
+                  - generic: 全部状态
+                - generic:
+                  - img:
+                    - img
+            - button "reload 刷新" [ref=e801] [cursor=pointer]:
+              - img "reload" [ref=e803]:
+                - img [ref=e804]
+              - generic [ref=e806]: 刷新
+          - table [ref=e815]:
+            - rowgroup [ref=e823]:
+              - row "文件路径 状态 分块数 大小 更新时间 错误" [ref=e824]:
+                - columnheader "文件路径" [ref=e825]
+                - columnheader "状态" [ref=e826]
+                - columnheader "分块数" [ref=e827]
+                - columnheader "大小" [ref=e828]
+                - columnheader "更新时间" [ref=e829]
+                - columnheader "错误" [ref=e830]
+            - rowgroup [ref=e831]:
+              - row "No data No data" [ref=e832]:
+                - cell "No data No data" [ref=e833]:
+                  - generic [ref=e835]:
+                    - img "No data" [ref=e837]
+                    - generic [ref=e843]: No data
+  - menu [ref=e865]:
+    - menuitem "test2 👤 普通用户 vv1.4.10" [disabled] [ref=e866]:
+      - generic [ref=e868]:
+        - strong [ref=e870]: test2
+        - generic [ref=e871]: 👤 普通用户 vv1.4.10
+    - separator [ref=e872]
+    - menuitem "idcard 个人中心" [ref=e873] [cursor=pointer]:
+      - img "idcard" [ref=e874]:
+        - img [ref=e875]
+      - generic [ref=e877]: 个人中心
+    - menuitem "setting 系统设置" [ref=e878] [cursor=pointer]:
+      - img "setting" [ref=e879]:
+        - img [ref=e880]
+      - generic [ref=e882]: 系统设置
+    - menuitem "github GitHub 仓库" [ref=e883] [cursor=pointer]:
+      - img "github" [ref=e884]:
+        - img [ref=e885]
+      - generic [ref=e887]: GitHub 仓库
+    - separator [ref=e888]
+    - menuitem "logout 退出登录" [ref=e889] [cursor=pointer]:
+      - img "logout" [ref=e890]:
+        - img [ref=e891]
+      - generic [ref=e893]: 退出登录

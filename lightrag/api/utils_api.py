@@ -211,11 +211,16 @@ def get_combined_auth_dependency(api_key: Optional[str] = None):
                             logger.warning(f"Token auto-renew failed: {e}")
                 # ========== End of Token Auto-Renewal Logic ==========
 
+                token_role = token_info.get("role", "user")
+
                 # Accept guest token if no auth is configured
-                if not auth_configured and token_info.get("role") == "guest":
+                if not auth_configured and token_role == "guest":
                     return
-                # Accept non-guest token if auth is configured
-                if auth_configured and token_info.get("role") != "guest":
+                # Accept admin/user token if auth is configured
+                if auth_configured and token_role in ("admin", "user"):
+                    return
+                # Accept guest token with auth configured (guest login path)
+                if auth_configured and token_role == "guest":
                     return
 
                 # Token validation failed, immediately return 401 error
