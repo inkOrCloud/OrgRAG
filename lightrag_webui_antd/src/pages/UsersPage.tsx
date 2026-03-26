@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   Table, Button, Space, Tag, Modal, Form, Input, Select, Switch,
-  Popconfirm, App, Typography, Card, Badge,
+  Popconfirm, App, Typography, Card, Badge, Alert,
 } from 'antd'
 import {
   PlusOutlined, EditOutlined, DeleteOutlined, ReloadOutlined, UserOutlined,
@@ -14,7 +14,7 @@ import type { User, UserRole } from '@/types'
 const { Title, Text } = Typography
 
 const ROLE_CONFIG: Record<UserRole, { color: string; label: string }> = {
-  admin: { color: 'red', label: '管理员' },
+  admin: { color: 'red', label: '系统管理员' },
   user: { color: 'blue', label: '普通用户' },
 }
 
@@ -154,12 +154,26 @@ export default function UsersPage() {
         </Space>
       </div>
 
-      <Card>
+      <Alert
+        type="info"
+        showIcon
+        style={{ marginBottom: 16 }}
+        message="用户角色说明"
+        description={
+          <ul style={{ margin: '4px 0 0', paddingLeft: 20 }}>
+            <li><Tag color="red" style={{ marginRight: 4 }}>系统管理员</Tag>拥有系统全局权限：可管理所有用户账号、组织结构和知识库，不受组织归属限制。</li>
+            <li><Tag color="blue" style={{ marginRight: 4 }}>普通用户</Tag>只能访问被授权的知识库；知识库读写权限由系统管理员在组织管理中单独配置。</li>
+          </ul>
+        }
+      />
+
+      <Card styles={{ body: { padding: 0, overflow: 'hidden' } }}>
         <Table
           rowKey="id"
           columns={columns}
           dataSource={users}
           loading={loading}
+          scroll={{ x: 700 }}
           pagination={{ pageSize: 20, showTotal: (t) => `共 ${t} 个用户` }}
         />
       </Card>
@@ -200,7 +214,7 @@ export default function UsersPage() {
           </Form.Item>
           <Form.Item name="role" label="角色" rules={[{ required: true }]}>
             <Select>
-              <Select.Option value="admin">管理员</Select.Option>
+              <Select.Option value="admin">系统管理员</Select.Option>
               <Select.Option value="user">普通用户</Select.Option>
             </Select>
           </Form.Item>

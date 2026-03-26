@@ -15,6 +15,11 @@ interface AuthState {
   apiVersion: string
   webuiTitle: string
   webuiDescription: string
+  /**
+   * True when the server reports that initial setup has not been completed.
+   * Starts as null (unknown) and is set after the first auth-status check.
+   */
+  setupRequired: boolean | null
 
   /** Convenience getter: current user is an admin */
   isAdmin: () => boolean
@@ -30,6 +35,7 @@ interface AuthState {
     webuiDescription?: string
     username?: string
   }) => void
+  setSetupRequired: (required: boolean) => void
   logout: () => void
 }
 
@@ -45,6 +51,7 @@ export const useAuthStore = create<AuthState>()(
       apiVersion: '',
       webuiTitle: 'LightRAG',
       webuiDescription: '',
+      setupRequired: null,
 
       isAdmin: () => get().role === 'admin',
 
@@ -67,6 +74,10 @@ export const useAuthStore = create<AuthState>()(
         })
       },
 
+      setSetupRequired: (required) => {
+        set({ setupRequired: required })
+      },
+
       logout: () => {
         localStorage.removeItem(TOKEN_KEY)
         set({
@@ -74,6 +85,7 @@ export const useAuthStore = create<AuthState>()(
           isAuthenticated: false,
           role: 'user',
           username: '',
+          setupRequired: null,
         })
       },
     }),

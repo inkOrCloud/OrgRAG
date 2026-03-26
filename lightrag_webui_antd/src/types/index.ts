@@ -112,6 +112,32 @@ export interface AuthStatusResponse {
   api_version?: string
   webui_title?: string
   webui_description?: string
+  /** True when the initial setup wizard has not yet been completed. */
+  setup_required?: boolean
+}
+
+// ── Setup / Initialization Wizard ────────────────────────────────────────────
+
+export interface SetupStatusResponse {
+  setup_required: boolean
+}
+
+export interface SetupRequest {
+  admin_username: string
+  admin_password: string
+  admin_email?: string
+  org_name: string
+  org_description?: string
+  kb_name: string
+  kb_description?: string
+}
+
+export interface SetupResponse {
+  message: string
+  access_token: string
+  token_type: string
+  role: UserRole
+  username: string
 }
 
 export interface LoginResponse {

@@ -40,6 +40,9 @@ import type {
   ChatSession,
   SaveSessionRequest,
   ChatSessionsResponse,
+  SetupStatusResponse,
+  SetupRequest,
+  SetupResponse,
 } from '@/types'
 
 // ── Axios instance ──────────────────────────────────────────────
@@ -64,7 +67,7 @@ axiosInstance.interceptors.request.use((config) => {
   const skipKB = url.startsWith('/kbs') || url.startsWith('/login') ||
     url.startsWith('/auth-status') || url.startsWith('/health') ||
     url.startsWith('/users') || url.startsWith('/chat') ||
-    url.startsWith('/orgs')
+    url.startsWith('/orgs') || url.startsWith('/setup')
   if (!skipKB) {
     const kbId: string | null = useKBStore.getState().currentKBId
     if (kbId) config.headers['X-KB-ID'] = kbId
@@ -79,7 +82,7 @@ axiosInstance.interceptors.response.use(
     // Do NOT redirect on 401 from the login endpoint itself –
     // wrong credentials should be handled by the login form's catch block.
     const url = err.config?.url ?? ''
-    const isLoginEndpoint = url.startsWith('/login') || url.startsWith('/auth-status')
+    const isLoginEndpoint = url.startsWith('/login') || url.startsWith('/auth-status') || url.startsWith('/setup')
     if (err.response?.status === 401 && !isLoginEndpoint) {
       useAuthStore.getState().logout()
       window.location.href = '/webui/login'
@@ -111,6 +114,17 @@ export async function login(username: string, password: string): Promise<LoginRe
   const { data } = await axiosInstance.post<LoginResponse>('/login', form, {
     headers: { 'Content-Type': 'multipart/form-data' },
   })
+  return data
+}
+
+// ── Setup / Initialization Wizard ───────────────────────────────
+export async function getSetupStatus(): Promise<SetupStatusResponse> {
+  const { data } = await axiosInstance.get<SetupStatusResponse>('/setup/status')
+  return data
+}
+
+export async function completeSetup(body: SetupRequest): Promise<SetupResponse> {
+  const { data } = await axiosInstance.post<SetupResponse>('/setup', body)
   return data
 }
 

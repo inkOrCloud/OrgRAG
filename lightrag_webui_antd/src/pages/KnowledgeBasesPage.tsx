@@ -271,8 +271,9 @@ export default function KnowledgeBasesPage() {
         </Space>
       </div>
 
-      <Card>
+      <Card styles={{ body: { padding: 0, overflow: 'hidden' } }}>
         <Table rowKey="id" columns={columns} dataSource={kbs} loading={loading}
+          scroll={{ x: 900 }}
           pagination={{ pageSize: 20, showTotal: (t) => `共 ${t} 个知识库` }} />
       </Card>
 

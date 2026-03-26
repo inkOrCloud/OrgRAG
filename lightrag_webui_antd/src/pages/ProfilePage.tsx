@@ -13,7 +13,7 @@ import type { User, UserRole } from '@/types'
 const { Title } = Typography
 
 const ROLE_CONFIG: Record<UserRole, { color: string; label: string }> = {
-  admin: { color: 'red', label: '管理员' },
+  admin: { color: 'red', label: '系统管理员' },
   user: { color: 'blue', label: '普通用户' },
 }
 

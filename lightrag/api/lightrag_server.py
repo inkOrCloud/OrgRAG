@@ -57,6 +57,7 @@ from lightrag.api.routers.user_routes import router as user_router
 from lightrag.api.routers.kb_routes import router as kb_router
 from lightrag.api.routers.org_routes import router as org_router
 from lightrag.api.routers.chat_routes import router as chat_router
+from lightrag.api.routers.setup_routes import router as setup_router
 from lightrag.api.user_db import init_user_db
 from lightrag.api.kb_db import init_kb_db
 from lightrag.api.chat_session_db import init_chat_db
@@ -364,7 +365,9 @@ def create_app(args):
             _db_path = _os.path.join(args.working_dir, "lightrag_users.db")
             user_db = init_user_db(_db_path)
             await user_db.initialize()
-            await user_db.ensure_default_admin()
+            # NOTE: no default admin is created here.
+            # The setup wizard (GET /setup/status → POST /setup) handles
+            # first-run initialization.
 
             # ── Knowledge-base database ───────────────────────────────────
             kb_db = init_kb_db(_db_path)
@@ -414,31 +417,22 @@ def create_app(args):
             # ── Knowledge-base manager ────────────────────────────────────
             kb_manager = init_kb_manager(_make_rag, args.input_dir)
 
-            # Ensure at least one (default) KB exists
-            existing_kbs = await kb_db.list_kbs()
-            if not existing_kbs:
-                default_kb = await kb_db.create_kb(
-                    name="默认知识库",
-                    description="系统默认知识库",
-                    owner_username="system",
-                    workspace=args.workspace,   # "" by default → backward compat
+            # Only load KBs when setup has been completed.
+            # On a fresh install the setup wizard will call load_kb() itself.
+            if await kb_db.is_setup_complete():
+                existing_kbs = await kb_db.list_kbs()
+                for kb in existing_kbs:
+                    if kb.is_active:
+                        await kb_manager.load_kb(kb)
+                if existing_kbs:
+                    default_kb = existing_kbs[0]
+                    kb_manager.default_kb_id = default_kb.id
+                    logger.info(f"KBManager: default KB is '{default_kb.name}' (id={default_kb.id})")
+            else:
+                logger.info(
+                    "KBManager: system not yet initialized — "
+                    "open the WebUI to complete the setup wizard"
                 )
-                existing_kbs = [default_kb]
-                logger.info("KBManager: created default knowledge base")
-
-            # Load all existing KBs
-            for kb in existing_kbs:
-                if kb.is_active:
-                    await kb_manager.load_kb(kb)
-
-            # The first KB (oldest) is the default
-            default_kb = existing_kbs[0]
-            kb_manager.default_kb_id = default_kb.id
-            logger.info(f"KBManager: default KB is '{default_kb.name}' (id={default_kb.id})")
-
-            # Phase 2 migration removed: org-based access control (Phase C)
-            # now manages KB visibility. Auto-granting all users all KBs
-            # is no longer appropriate.
 
             ASCIIColors.green("\nServer is ready to accept connections! 🚀\n")
 
@@ -1169,6 +1163,9 @@ def create_app(args):
     # Chat session routes
     app.include_router(chat_router)
 
+    # Setup / initialization wizard routes (public – no auth)
+    app.include_router(setup_router)
+
     # ── KB routing middleware ─────────────────────────────────────────────────
     # Reads X-KB-ID request header and binds the matching RAG / DocManager
     # instance to the async ContextVar for the duration of each request.
@@ -1193,11 +1190,23 @@ def create_app(args):
         # Management routes (/kbs, /users, /orgs, /health, /login …) have their
         # own auth dependencies and must NOT be blocked here.
         _path = request.url.path
+        # Exact paths that never need a KB context (root redirect, API docs …)
+        _SKIP_KB_CHECK_EXACT = {"/", "/redoc"}
         _SKIP_KB_CHECK_PREFIXES = (
             "/kbs", "/users", "/orgs", "/health", "/login",
             "/token", "/auth", "/docs", "/openapi", "/webui",
+            "/setup", "/static",
         )
-        _needs_kb_check = not any(_path.startswith(p) for p in _SKIP_KB_CHECK_PREFIXES)
+        _needs_kb_check = not (
+            _path in _SKIP_KB_CHECK_EXACT
+            or any(_path.startswith(p) for p in _SKIP_KB_CHECK_PREFIXES)
+        )
+
+        # Management / public routes do not need a KB context at all.
+        # Skip both the permission check AND the KB-binding step so that
+        # these endpoints work even when no KB has been loaded yet (e.g. before setup).
+        if not _needs_kb_check:
+            return await call_next(request)
 
         # When auth is disabled every request is treated as full-access;
         # only run the per-user KB permission check when accounts are configured.
@@ -1293,12 +1302,16 @@ def create_app(args):
 
     @app.get("/auth-status", tags=["system"], summary="Get server metadata")
     async def get_auth_status():
-        """Return server version and branding metadata used by the login page."""
+        """Return server version, branding metadata, and setup status."""
+        from lightrag.api.kb_db import get_kb_db
+        kb_db = get_kb_db()
+        setup_done = await kb_db.is_setup_complete()
         return {
             "core_version": core_version,
             "api_version": api_version_display,
             "webui_title": webui_title,
             "webui_description": webui_description,
+            "setup_required": not setup_done,
         }
 
     @app.post(

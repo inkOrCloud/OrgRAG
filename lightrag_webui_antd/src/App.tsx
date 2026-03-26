@@ -1,9 +1,11 @@
+import { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { ConfigProvider, App as AntdApp, theme as antdTheme } from 'antd'
+import { ConfigProvider, App as AntdApp, theme as antdTheme, Spin } from 'antd'
 import { useSettingsStore } from './stores/settings'
 import { useAuthStore } from './stores/auth'
 import AppLayout from './components/AppLayout'
 import LoginPage from './pages/LoginPage'
+import SetupPage from './pages/SetupPage'
 import DocumentsPage from './pages/DocumentsPage'
 import QueryPage from './pages/QueryPage'
 import GraphPage from './pages/GraphPage'
@@ -11,7 +13,36 @@ import UsersPage from './pages/UsersPage'
 import ProfilePage from './pages/ProfilePage'
 import KnowledgeBasesPage from './pages/KnowledgeBasesPage'
 import OrganizationsPage from './pages/OrganizationsPage'
+import { getAuthStatus } from './api/client'
 import 'antd/dist/reset.css'
+
+/**
+ * Checks setup status once at app boot and blocks rendering until known.
+ * Redirects everything to /setup when setup_required is true.
+ */
+function SetupGuard({ children }: { children: React.ReactNode }) {
+  const { setupRequired, setSetupRequired } = useAuthStore()
+  const [checking, setChecking] = useState(setupRequired === null)
+
+  useEffect(() => {
+    if (setupRequired !== null) return  // already known
+    getAuthStatus()
+      .then((res) => setSetupRequired(res.setup_required ?? false))
+      .catch(() => setSetupRequired(false))   // if server unreachable, let LoginPage handle it
+      .finally(() => setChecking(false))
+  }, [setupRequired, setSetupRequired])
+
+  if (checking) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Spin size="large" />
+      </div>
+    )
+  }
+
+  if (setupRequired) return <Navigate to="/setup" replace />
+  return <>{children}</>
+}
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuthStore()
@@ -49,13 +80,28 @@ export default function App() {
       <AntdApp>
         <BrowserRouter basename="/webui">
           <Routes>
-            <Route path="/login" element={<LoginPage />} />
+            {/* Setup wizard – always accessible, no auth required */}
+            <Route path="/setup" element={<SetupPage />} />
+
+            {/* Login – guarded: redirects to /setup if setup not done */}
+            <Route
+              path="/login"
+              element={
+                <SetupGuard>
+                  <LoginPage />
+                </SetupGuard>
+              }
+            />
+
+            {/* Main app – guarded: redirects to /setup if not done, then /login */}
             <Route
               path="/"
               element={
-                <ProtectedRoute>
-                  <AppLayout />
-                </ProtectedRoute>
+                <SetupGuard>
+                  <ProtectedRoute>
+                    <AppLayout />
+                  </ProtectedRoute>
+                </SetupGuard>
               }
             >
               <Route index element={<Navigate to="/documents" replace />} />
@@ -74,6 +120,7 @@ export default function App() {
               <Route path="knowledge-bases" element={<KnowledgeBasesPage />} />
               <Route path="organizations" element={<OrganizationsPage />} />
             </Route>
+
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>

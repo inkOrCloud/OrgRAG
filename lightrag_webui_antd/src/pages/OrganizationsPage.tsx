@@ -7,7 +7,7 @@
  */
 import { useState, useEffect, useCallback } from 'react'
 import {
-  App, Button, Card, Col, Drawer, Form, Input, Modal, Popconfirm,
+  Alert, App, Button, Card, Col, Drawer, Form, Input, Modal, Popconfirm,
   Row, Select, Space, Switch, Table, Tag, Tooltip, Tree, Typography,
 } from 'antd'
 import {
@@ -56,7 +56,7 @@ function flattenOrgs(orgs: Organization[]): Organization[] {
 // ── Role tag ─────────────────────────────────────────────────────────────────
 
 const RoleTag = ({ role }: { role: OrgRole }) => (
-  <Tag color={role === 'admin' ? 'gold' : 'blue'}>{role === 'admin' ? '管理员' : '成员'}</Tag>
+  <Tag color={role === 'admin' ? 'gold' : 'blue'}>{role === 'admin' ? '组织管理员' : '成员'}</Tag>
 )
 
 // ── Page ─────────────────────────────────────────────────────────────────────
@@ -241,9 +241,9 @@ export default function OrganizationsPage() {
     { title: '角色', dataIndex: 'role', key: 'role',
       render: (r: OrgRole, record: OrgMember) => (
         isAdmin() ? (
-          <Select value={r} size="small" style={{ width: 90 }}
+          <Select value={r} size="small" style={{ width: 110 }}
             onChange={(v) => handleChangeRole(record.username, v as OrgRole)}
-            options={[{ value: 'admin', label: '管理员' }, { value: 'member', label: '成员' }]}
+            options={[{ value: 'admin', label: '组织管理员' }, { value: 'member', label: '成员' }]}
           />
         ) : <RoleTag role={r} />
       ),
@@ -367,6 +367,18 @@ export default function OrganizationsPage() {
                   <Button size="small" icon={<PlusOutlined />} onClick={() => setAddMemberOpen(true)}>添加成员</Button>
                 )}
               >
+                <Alert
+                  type="info"
+                  showIcon
+                  style={{ marginBottom: 12 }}
+                  message="组织角色说明"
+                  description={
+                    <ul style={{ margin: '4px 0 0', paddingLeft: 20 }}>
+                      <li><Tag color="gold" style={{ marginRight: 4 }}>组织管理员</Tag>可管理本组织及下级子组织的成员，协助分配知识库权限；<strong>不具备</strong>系统级用户管理权限。</li>
+                      <li><Tag color="blue" style={{ marginRight: 4 }}>成员</Tag>普通组织成员；知识库读写权限由系统管理员在右侧开关单独配置。</li>
+                    </ul>
+                  }
+                />
                 <Table
                   dataSource={members}
                   columns={memberColumns}
@@ -419,7 +431,7 @@ export default function OrganizationsPage() {
             <Input prefix={<UserOutlined />} placeholder="输入已注册的用户名" />
           </Form.Item>
           <Form.Item name="role" label="角色" initialValue="member">
-            <Select options={[{ value: 'member', label: '成员' }, { value: 'admin', label: '管理员' }]} />
+            <Select options={[{ value: 'member', label: '成员' }, { value: 'admin', label: '组织管理员' }]} />
           </Form.Item>
         </Form>
       </Drawer>

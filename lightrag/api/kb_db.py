@@ -206,6 +206,14 @@ class KBDatabase:
                 )
             """)
             conn.execute("CREATE INDEX IF NOT EXISTS idx_kboperm_user ON org_kb_permissions(username)")
+            # Setup state: tracks whether initial wizard has been completed
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS system_settings (
+                    key        TEXT PRIMARY KEY,
+                    value      TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )
+            """)
             conn.commit()
 
     def _row_to_kb(self, row: sqlite3.Row) -> KnowledgeBase:
@@ -831,6 +839,43 @@ class KBDatabase:
     async def get_user_org(self, username: str) -> Optional[OrgMember]:
         """Return the org membership for a user, or None if unassigned."""
         return await asyncio.to_thread(self._do_get_user_org, username)
+
+
+    # ── System Settings ───────────────────────────────────────────────────────
+
+    def _do_get_setting(self, key: str) -> Optional[str]:
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT value FROM system_settings WHERE key=?", (key,)
+            ).fetchone()
+        return row["value"] if row else None
+
+    async def get_system_setting(self, key: str) -> Optional[str]:
+        """Return the value of a system setting, or None if not set."""
+        return await asyncio.to_thread(self._do_get_setting, key)
+
+    def _do_set_setting(self, key: str, value: str) -> None:
+        now = datetime.utcnow().isoformat()
+        with self._connect() as conn:
+            conn.execute(
+                "INSERT INTO system_settings (key,value,updated_at) VALUES (?,?,?) "
+                "ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=excluded.updated_at",
+                (key, value, now),
+            )
+            conn.commit()
+
+    async def set_system_setting(self, key: str, value: str) -> None:
+        """Upsert a system setting."""
+        await asyncio.to_thread(self._do_set_setting, key, value)
+
+    async def is_setup_complete(self) -> bool:
+        """Return True if the initial setup wizard has been completed."""
+        val = await self.get_system_setting("setup_completed")
+        return val == "true"
+
+    async def mark_setup_complete(self) -> None:
+        """Mark the initial setup wizard as completed."""
+        await self.set_system_setting("setup_completed", "true")
 
 
 # ── Singleton ─────────────────────────────────────────────────────────────────
