@@ -192,20 +192,17 @@ def check_frontend_build():
         ASCIIColors.yellow(
             "\nTo enable WebUI, build the frontend using these commands:\n"
         )
-        ASCIIColors.cyan("    cd lightrag_webui")
-        ASCIIColors.cyan("    bun install --frozen-lockfile")
-        ASCIIColors.cyan("    bun run build")
+        ASCIIColors.cyan("    cd lightrag_webui_antd")
+        ASCIIColors.cyan("    npm install")
+        ASCIIColors.cyan("    npm run build")
         ASCIIColors.cyan("    cd ..")
         ASCIIColors.yellow("\nThen restart the service.\n")
-        ASCIIColors.cyan(
-            "Note: Make sure you have Bun installed. Visit https://bun.sh for installation."
-        )
         ASCIIColors.yellow("=" * 80 + "\n")
         return (False, False)  # Assets don't exist, not outdated
 
     # 2. Check if this is a development environment (source directory exists)
     try:
-        source_dir = Path(__file__).parent.parent.parent / "lightrag_webui"
+        source_dir = Path(__file__).parent.parent.parent / "lightrag_webui_antd"
         src_dir = source_dir / "src"
 
         # Determine if this is a development environment: source directory exists and contains src directory
@@ -283,9 +280,9 @@ def check_frontend_build():
             ASCIIColors.cyan(
                 "Recommended: Rebuild the frontend to use the latest changes:"
             )
-            ASCIIColors.cyan("    cd lightrag_webui")
-            ASCIIColors.cyan("    bun install --frozen-lockfile")
-            ASCIIColors.cyan("    bun run build")
+            ASCIIColors.cyan("    cd lightrag_webui_antd")
+            ASCIIColors.cyan("    npm install")
+            ASCIIColors.cyan("    npm run build")
             ASCIIColors.cyan("    cd ..")
             ASCIIColors.yellow("\nThe server will continue with the current build.")
             ASCIIColors.yellow("=" * 80 + "\n")
@@ -1216,8 +1213,8 @@ def create_app(args):
                     token_info = auth_handler.validate_token(token)
                     role = token_info.get("role", "user")
                     username = token_info.get("username", "")
-                    # Admin / guest users always have full access; skip DB check
-                    if role not in ("admin", "guest") and username:
+                    # Admin users always have full access; skip DB check
+                    if role != "admin" and username:
                         db = get_kb_db()
                         if not await db.has_kb_access(kb_id, username):
                             # User explicitly requested a forbidden KB → 403
@@ -1300,28 +1297,10 @@ def create_app(args):
 
     @app.get("/auth-status", tags=["system"], summary="Get authentication status")
     async def get_auth_status():
-        """Get authentication status and guest token if auth is not configured"""
-
-        if not auth_handler.accounts:
-            # Authentication not configured, return guest token
-            guest_token = auth_handler.create_token(
-                username="guest", role="guest", metadata={"auth_mode": "disabled"}
-            )
-            return {
-                "auth_configured": False,
-                "access_token": guest_token,
-                "token_type": "bearer",
-                "auth_mode": "disabled",
-                "message": "Authentication is disabled. Using guest access.",
-                "core_version": core_version,
-                "api_version": api_version_display,
-                "webui_title": webui_title,
-                "webui_description": webui_description,
-            }
-
+        """Get authentication status"""
         return {
-            "auth_configured": True,
-            "auth_mode": "enabled",
+            "auth_configured": bool(auth_handler.accounts),
+            "auth_mode": "enabled" if auth_handler.accounts else "disabled",
             "core_version": core_version,
             "api_version": api_version_display,
             "webui_title": webui_title,
@@ -1361,20 +1340,10 @@ def create_app(args):
         from lightrag.api.user_db import get_user_db as _get_user_db
 
         if not auth_configured:
-            # Authentication not configured, return guest token
-            guest_token = auth_handler.create_token(
-                username="guest", role="guest", metadata={"auth_mode": "disabled"}
+            raise HTTPException(
+                status_code=400,
+                detail="Authentication is not configured. No login required.",
             )
-            return {
-                "access_token": guest_token,
-                "token_type": "bearer",
-                "auth_mode": "disabled",
-                "message": "Authentication is disabled. Using guest access.",
-                "core_version": core_version,
-                "api_version": api_version_display,
-                "webui_title": webui_title,
-                "webui_description": webui_description,
-            }
 
         username = form_data.username
         db = _get_user_db()

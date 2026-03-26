@@ -172,7 +172,7 @@ export interface PipelineStatusResponse {
 
 // ── User Management ──────────────────────────────────────────────────────────
 
-export type UserRole = 'admin' | 'user' | 'guest'
+export type UserRole = 'admin' | 'user'
 
 export interface User {
   id: string

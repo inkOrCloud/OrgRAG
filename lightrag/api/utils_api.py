@@ -161,12 +161,7 @@ def get_combined_auth_dependency(api_key: Optional[str] = None):
 
                                 # Get original token expiration duration
                                 role = token_info.get("role", "user")
-                                total_hours = (
-                                    auth_handler.guest_expire_hours
-                                    if role == "guest"
-                                    else auth_handler.expire_hours
-                                )
-                                total_seconds = total_hours * 3600
+                                total_seconds = auth_handler.expire_hours * 3600
 
                                 # Issue new token if remaining time < threshold
                                 if (
@@ -213,14 +208,8 @@ def get_combined_auth_dependency(api_key: Optional[str] = None):
 
                 token_role = token_info.get("role", "user")
 
-                # Accept guest token if no auth is configured
-                if not auth_configured and token_role == "guest":
-                    return
-                # Accept admin/user token if auth is configured
-                if auth_configured and token_role in ("admin", "user"):
-                    return
-                # Accept guest token with auth configured (guest login path)
-                if auth_configured and token_role == "guest":
+                # Accept admin/user token
+                if token_role in ("admin", "user"):
                     return
 
                 # Token validation failed, immediately return 401 error

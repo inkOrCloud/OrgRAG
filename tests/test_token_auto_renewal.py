@@ -31,7 +31,6 @@ class TestTokenRenewal:
     def mock_auth_handler(self):
         """Mock authentication handler"""
         handler = Mock()
-        handler.guest_expire_hours = 24
         handler.expire_hours = 24
         handler.create_token = Mock(return_value="new-token-12345")
         return handler
@@ -43,18 +42,6 @@ class TestTokenRenewal:
         args.token_auto_renew = True
         args.token_renew_threshold = 0.5
         return args
-
-    @pytest.fixture
-    def mock_token_info_guest(self):
-        """Mock token info for guest user"""
-        # Token with 10 hours remaining (below 50% of 24 hours)
-        exp_time = datetime.now(timezone.utc) + timedelta(hours=10)
-        return {
-            "username": "guest",
-            "role": "guest",
-            "exp": exp_time,
-            "metadata": {"auth_mode": "disabled"},
-        }
 
     @pytest.fixture
     def mock_token_info_user(self):
@@ -99,12 +86,7 @@ class TestTokenRenewal:
         remaining_seconds = (expire_time - now).total_seconds()
 
         role = mock_token_info_user["role"]
-        total_hours = (
-            mock_auth_handler.expire_hours
-            if role == "user"
-            else mock_auth_handler.guest_expire_hours
-        )
-        total_seconds = total_hours * 3600
+        total_seconds = mock_auth_handler.expire_hours * 3600
 
         # Should renew because remaining_seconds < total_seconds * 0.5
         should_renew = (
@@ -171,42 +153,6 @@ class TestTokenRenewal:
             pass
 
         assert "X-New-Token" not in response.headers
-
-    def test_token_renewal_for_guest_mode(
-        self, mock_auth_handler, mock_global_args, mock_token_info_guest
-    ):
-        """Test that guest tokens are renewed correctly"""
-        # Use global cache
-        global _token_renewal_cache
-
-        _token_renewal_cache.clear()
-
-        response = Mock(spec=Response)
-        response.headers = {}
-
-        expire_time = mock_token_info_guest["exp"]
-        now = datetime.now(timezone.utc)
-        remaining_seconds = (expire_time - now).total_seconds()
-
-        role = mock_token_info_guest["role"]
-        total_hours = mock_auth_handler.guest_expire_hours
-        total_seconds = total_hours * 3600
-
-        should_renew = (
-            remaining_seconds < total_seconds * mock_global_args.token_renew_threshold
-        )
-        assert should_renew is True
-
-        # Renewal for guest
-        username = mock_token_info_guest["username"]
-        new_token = mock_auth_handler.create_token(
-            username=username, role=role, metadata=mock_token_info_guest["metadata"]
-        )
-        response.headers["X-New-Token"] = new_token
-        _token_renewal_cache[username] = time.time()
-
-        assert "X-New-Token" in response.headers
-        assert username in _token_renewal_cache
 
 
 @pytest.mark.offline

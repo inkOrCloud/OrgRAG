@@ -68,6 +68,9 @@ ignore_this.txt
 /book.txt
 download_models_hf.py
 
+# Old frontend (replaced by lightrag_webui_antd)
+/lightrag_webui/
+
 # Frontend build output (built during PyPI release)
 /lightrag/api/webui/
 

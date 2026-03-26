@@ -28,7 +28,6 @@ def auth_module(monkeypatch):
         token_secret="lightrag-jwt-default-secret-key!",
         jwt_algorithm="HS256",
         token_expire_hours=48,
-        guest_token_expire_hours=24,
         auth_accounts="admin:admin_pass",
     )
 
@@ -76,7 +75,6 @@ def test_invalid_auth_accounts_raises(monkeypatch):
         token_secret="lightrag-jwt-default-secret-key!",
         jwt_algorithm="HS256",
         token_expire_hours=48,
-        guest_token_expire_hours=24,
         auth_accounts="admin",
     )
 

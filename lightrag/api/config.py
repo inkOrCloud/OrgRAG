@@ -399,7 +399,6 @@ def parse_args() -> argparse.Namespace:
         "TOKEN_SECRET", "lightrag-jwt-default-secret-key!"
     )
     args.token_expire_hours = get_env_value("TOKEN_EXPIRE_HOURS", 48, float)
-    args.guest_token_expire_hours = get_env_value("GUEST_TOKEN_EXPIRE_HOURS", 24, float)
     args.jwt_algorithm = get_env_value("JWT_ALGORITHM", "HS256")
 
     # Token auto-renewal configuration (sliding window expiration)

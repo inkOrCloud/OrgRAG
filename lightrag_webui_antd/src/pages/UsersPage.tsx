@@ -16,7 +16,6 @@ const { Title, Text } = Typography
 const ROLE_CONFIG: Record<UserRole, { color: string; label: string }> = {
   admin: { color: 'red', label: '管理员' },
   user: { color: 'blue', label: '普通用户' },
-  guest: { color: 'default', label: '访客' },
 }
 
 export default function UsersPage() {

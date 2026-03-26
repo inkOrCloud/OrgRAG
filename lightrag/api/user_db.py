@@ -22,7 +22,7 @@ from .passwords import hash_password, verify_password
 class User:
     id: str
     username: str
-    role: str  # admin | user | guest
+    role: str  # admin | user
     is_active: bool
     created_at: str
     updated_at: str

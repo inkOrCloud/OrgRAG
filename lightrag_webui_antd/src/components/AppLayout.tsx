@@ -64,7 +64,7 @@ export default function AppLayout() {
   const { message } = App.useApp()
   const navigate = useNavigate()
   const location = useLocation()
-  const { logout, username, isGuest, webuiTitle, coreVersion, apiVersion, role, isAdmin } = useAuthStore()
+  const { logout, username, webuiTitle, coreVersion, apiVersion, role, isAdmin } = useAuthStore()
   const { isDark, toggleDark, sidebarCollapsed, setSidebarCollapsed, apiBaseUrl, setApiBaseUrl } = useSettingsStore()
 
   const [health, setHealth] = useState<HealthStatus | null>(null)
@@ -111,10 +111,10 @@ export default function AppLayout() {
       key: 'user-info',
       label: (
         <div style={{ padding: '4px 0' }}>
-          <Text strong>{isGuest ? '访客用户' : username}</Text>
+          <Text strong>{username}</Text>
           <br />
           <Text type="secondary" style={{ fontSize: 11 }}>
-            {role === 'admin' ? '🔑 管理员' : role === 'guest' ? '👤 访客' : '👤 普通用户'}
+            {role === 'admin' ? '🔑 管理员' : '👤 普通用户'}
             {coreVersion ? `  v${coreVersion}` : ''}
           </Text>
         </div>
@@ -285,13 +285,13 @@ export default function AppLayout() {
             >
               <Avatar
                 style={{
-                  background: isGuest ? '#8c8c8c' : '#1677ff',
+                  background: '#1677ff',
                   cursor: 'pointer',
                 }}
                 size={32}
                 icon={<UserOutlined />}
               >
-                {!isGuest && username ? username[0].toUpperCase() : undefined}
+                {username ? username[0].toUpperCase() : undefined}
               </Avatar>
             </Dropdown>
           </Space>

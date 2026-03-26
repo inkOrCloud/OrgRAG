@@ -33,7 +33,6 @@ class AuthHandler:
             )
         self.algorithm = global_args.jwt_algorithm
         self.expire_hours = global_args.token_expire_hours
-        self.guest_expire_hours = global_args.guest_token_expire_hours
         self.accounts = {}
         auth_accounts = global_args.auth_accounts
         invalid_accounts = []
@@ -82,21 +81,14 @@ class AuthHandler:
 
         Args:
             username: Username
-            role: User role, default is "user", guest is "guest"
+            role: User role, either "admin" or "user"
             custom_expire_hours: Custom expiration time (hours), if None use default value
             metadata: Additional metadata
 
         Returns:
             str: Encoded JWT token
         """
-        # Choose default expiration time based on role
-        if custom_expire_hours is None:
-            if role == "guest":
-                expire_hours = self.guest_expire_hours
-            else:
-                expire_hours = self.expire_hours
-        else:
-            expire_hours = custom_expire_hours
+        expire_hours = custom_expire_hours if custom_expire_hours is not None else self.expire_hours
 
         expire = datetime.utcnow() + timedelta(hours=expire_hours)
 

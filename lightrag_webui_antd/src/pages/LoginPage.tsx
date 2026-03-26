@@ -7,12 +7,10 @@ import {
   Card,
   Typography,
   Alert,
-  Divider,
-  Space,
   Switch,
   Tooltip,
 } from 'antd'
-import { UserOutlined, LockOutlined, ThunderboltOutlined, MoonOutlined, SunOutlined } from '@ant-design/icons'
+import { UserOutlined, LockOutlined, MoonOutlined, SunOutlined } from '@ant-design/icons'
 import { getAuthStatus, login } from '@/api/client'
 import { useAuthStore } from '@/stores/auth'
 import { useSettingsStore } from '@/stores/settings'
@@ -25,7 +23,6 @@ export default function LoginPage() {
   const { isDark, toggleDark } = useSettingsStore()
 
   const [loading, setLoading] = useState(false)
-  const [guestLoading, setGuestLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [authConfigured, setAuthConfigured] = useState(true)
   const [checking, setChecking] = useState(true)
@@ -41,11 +38,11 @@ export default function LoginPage() {
       .then((res) => {
         setWebuiTitle(res.webui_title || 'LightRAG')
         setAuthConfigured(res.auth_configured)
-        if (!res.auth_configured && res.access_token) {
+        if (!res.auth_configured) {
+          // Auth is disabled – mark as authenticated with no token (backend allows all requests)
           setAuthInfo({
-            token: res.access_token,
-            isGuest: true,
-            authMode: res.auth_mode,
+            token: '',
+            authMode: 'disabled',
             coreVersion: res.core_version,
             apiVersion: res.api_version,
             webuiTitle: res.webui_title,
@@ -65,7 +62,6 @@ export default function LoginPage() {
       const res = await login(values.username, values.password)
       setAuthInfo({
         token: res.access_token,
-        isGuest: false,
         role: res.role,
         username: values.username,
         authMode: res.auth_mode,
@@ -79,32 +75,6 @@ export default function LoginPage() {
       setError('用户名或密码错误，请重试。')
     } finally {
       setLoading(false)
-    }
-  }
-
-  const handleGuestLogin = async () => {
-    setGuestLoading(true)
-    setError(null)
-    try {
-      const res = await getAuthStatus()
-      if (res.access_token) {
-        setAuthInfo({
-          token: res.access_token,
-          isGuest: true,
-          authMode: res.auth_mode,
-          coreVersion: res.core_version,
-          apiVersion: res.api_version,
-          webuiTitle: res.webui_title,
-          webuiDescription: res.webui_description,
-        })
-        navigate('/', { replace: true })
-      } else {
-        setError('访客模式不可用。')
-      }
-    } catch {
-      setError('连接服务器失败，请稍后重试。')
-    } finally {
-      setGuestLoading(false)
     }
   }
 
@@ -228,38 +198,7 @@ export default function LoginPage() {
                 </Button>
               </Form.Item>
             </Form>
-
-            <Divider style={{ margin: '16px 0', fontSize: 12 }}>或</Divider>
-
-            <Button
-              block
-              icon={<ThunderboltOutlined />}
-              loading={guestLoading}
-              onClick={handleGuestLogin}
-              style={{ height: 44, borderRadius: 8 }}
-            >
-              访客模式进入
-            </Button>
           </>
-        ) : (
-          <Space direction="vertical" style={{ width: '100%' }} size={12}>
-            <Alert
-              type="info"
-              message="未启用身份验证"
-              description={`您可以直接访问 ${webuiTitle}，无需输入凭据。`}
-              showIcon
-            />
-            <Button
-              type="primary"
-              block
-              icon={<ThunderboltOutlined />}
-              loading={guestLoading}
-              onClick={handleGuestLogin}
-              style={{ height: 44, borderRadius: 8, fontWeight: 600 }}
-            >
-              进入 {webuiTitle}
-            </Button>
-          </Space>
         )}
       </Card>
     </div>

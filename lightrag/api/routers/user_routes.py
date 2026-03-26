@@ -119,7 +119,7 @@ async def get_me(current_user: dict = Security(get_current_user)):
     db = get_user_db()
     user = await db.get_user_by_username(current_user["username"])
     if not user:
-        # Fallback for guest or ENV-only users not in DB
+        # Fallback for ENV-only users not in DB
         return {
             "user": {
                 "username": current_user["username"],

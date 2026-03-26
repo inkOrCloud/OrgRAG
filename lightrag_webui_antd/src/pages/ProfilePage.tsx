@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import {
   Card, Descriptions, Tag, Form, Input, Button, App, Typography, Space,
-  Divider, Spin, Alert,
+  Divider, Spin,
 } from 'antd'
 import {
-  UserOutlined, LockOutlined, SafetyCertificateOutlined,
+  UserOutlined, LockOutlined,
 } from '@ant-design/icons'
 import { getMe, changeMyPassword } from '@/api/client'
 import { useAuthStore } from '@/stores/auth'
@@ -15,7 +15,6 @@ const { Title } = Typography
 const ROLE_CONFIG: Record<UserRole, { color: string; label: string }> = {
   admin: { color: 'red', label: '管理员' },
   user: { color: 'blue', label: '普通用户' },
-  guest: { color: 'default', label: '访客' },
 }
 
 export default function ProfilePage() {
@@ -98,15 +97,7 @@ export default function ProfilePage() {
 
       {/* 修改密码 */}
       <Card title={<Space><LockOutlined /> 修改密码</Space>}>
-        {role === 'guest' ? (
-          <Alert
-            type="info"
-            message="访客模式下无法修改密码"
-            icon={<SafetyCertificateOutlined />}
-            showIcon
-          />
-        ) : (
-          <Form
+        <Form
             form={form}
             layout="vertical"
             onFinish={handleChangePassword}
@@ -155,7 +146,6 @@ export default function ProfilePage() {
               </Button>
             </Form.Item>
           </Form>
-        )}
       </Card>
     </div>
   )

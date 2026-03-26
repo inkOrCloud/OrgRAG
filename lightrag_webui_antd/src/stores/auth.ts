@@ -7,8 +7,7 @@ const TOKEN_KEY = 'LIGHTRAG-API-TOKEN'
 interface AuthState {
   token: string | null
   isAuthenticated: boolean
-  isGuest: boolean
-  /** 'admin' | 'user' | 'guest' */
+  /** 'admin' | 'user' */
   role: UserRole
   username: string
   authMode: 'enabled' | 'disabled' | null
@@ -20,10 +19,9 @@ interface AuthState {
   /** Convenience getter: current user is an admin */
   isAdmin: () => boolean
 
-  setToken: (token: string, isGuest?: boolean) => void
+  setToken: (token: string) => void
   setAuthInfo: (info: {
     token: string
-    isGuest?: boolean
     role?: UserRole
     authMode?: 'enabled' | 'disabled'
     coreVersion?: string
@@ -40,7 +38,6 @@ export const useAuthStore = create<AuthState>()(
     (set, get) => ({
       token: null,
       isAuthenticated: false,
-      isGuest: false,
       role: 'user' as UserRole,
       username: '',
       authMode: null,
@@ -51,17 +48,15 @@ export const useAuthStore = create<AuthState>()(
 
       isAdmin: () => get().role === 'admin',
 
-      setToken: (token, isGuest = false) => {
-        set({ token, isAuthenticated: true, isGuest, role: isGuest ? 'guest' : 'user' })
+      setToken: (token) => {
+        set({ token, isAuthenticated: true, role: 'user' })
       },
 
       setAuthInfo: (info) => {
-        const isGuest = info.isGuest ?? false
-        const role: UserRole = info.role ?? (isGuest ? 'guest' : 'user')
+        const role: UserRole = info.role ?? 'user'
         set({
           token: info.token,
           isAuthenticated: true,
-          isGuest,
           role,
           username: info.username ?? '',
           authMode: info.authMode ?? null,
@@ -77,7 +72,6 @@ export const useAuthStore = create<AuthState>()(
         set({
           token: null,
           isAuthenticated: false,
-          isGuest: false,
           role: 'user',
           username: '',
         })
@@ -88,7 +82,6 @@ export const useAuthStore = create<AuthState>()(
       partialize: (state) => ({
         token: state.token,
         isAuthenticated: state.isAuthenticated,
-        isGuest: state.isGuest,
         role: state.role,
         username: state.username,
         authMode: state.authMode,

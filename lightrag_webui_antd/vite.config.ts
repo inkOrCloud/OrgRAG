@@ -67,8 +67,10 @@ export default defineConfig({
       '/chat': { target: 'http://localhost:9621', changeOrigin: true },
     },
   },
+  base: '/webui/',
   build: {
-    outDir: 'dist',
+    outDir: path.resolve(__dirname, '../lightrag/api/webui'),
+    emptyOutDir: true,
     sourcemap: false,
     chunkSizeWarningLimit: 1000,
     rollupOptions: {
