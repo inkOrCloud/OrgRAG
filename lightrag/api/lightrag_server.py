@@ -1206,7 +1206,9 @@ def create_app(args):
         )
         _needs_kb_check = not any(_path.startswith(p) for p in _SKIP_KB_CHECK_PREFIXES)
 
-        if _needs_kb_check:
+        # When auth is disabled every request is treated as full-access;
+        # only run the per-user KB permission check when accounts are configured.
+        if _needs_kb_check and auth_configured:
             auth_header = request.headers.get("Authorization", "")
             if auth_header.startswith("Bearer "):
                 token = auth_header[7:]
@@ -1214,8 +1216,8 @@ def create_app(args):
                     token_info = auth_handler.validate_token(token)
                     role = token_info.get("role", "user")
                     username = token_info.get("username", "")
-                    # Admin users always have full access; skip DB check
-                    if role != "admin" and username:
+                    # Admin / guest users always have full access; skip DB check
+                    if role not in ("admin", "guest") and username:
                         db = get_kb_db()
                         if not await db.has_kb_access(kb_id, username):
                             # User explicitly requested a forbidden KB → 403
