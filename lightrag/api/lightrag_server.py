@@ -93,10 +93,6 @@ webui_description = os.getenv("WEBUI_DESCRIPTION")
 config = configparser.ConfigParser()
 config.read("config.ini")
 
-# Global authentication configuration
-auth_configured = bool(auth_handler.accounts)
-
-
 class LLMConfigCache:
     """Smart LLM and Embedding configuration cache class"""
 
@@ -353,28 +349,6 @@ def create_app(args):
         if not os.path.exists(args.ssl_keyfile):
             raise Exception(f"SSL key file not found: {args.ssl_keyfile}")
 
-    # ── Mandatory authentication guard ────────────────────────────────────────
-    if not auth_handler.accounts:
-        ASCIIColors.red("\n" + "=" * 80)
-        ASCIIColors.red("ERROR: AUTH_ACCOUNTS is not configured.")
-        ASCIIColors.red("=" * 80)
-        ASCIIColors.red(
-            "Authentication is mandatory. The server will not start without"
-            " at least one user account."
-        )
-        ASCIIColors.yellow(
-            "\nAdd AUTH_ACCOUNTS to your .env file:"
-        )
-        ASCIIColors.cyan("    AUTH_ACCOUNTS=admin:your_password")
-        ASCIIColors.yellow(
-            "\nFor multiple accounts use comma-separated pairs:"
-        )
-        ASCIIColors.cyan("    AUTH_ACCOUNTS=admin:pass1,alice:pass2")
-        ASCIIColors.red("\n" + "=" * 80 + "\n")
-        raise RuntimeError(
-            "AUTH_ACCOUNTS must be configured before starting the server."
-        )
-
     # Check if API key is provided either through env var or args
     api_key = os.getenv("LIGHTRAG_API_KEY") or args.key
 
@@ -390,7 +364,7 @@ def create_app(args):
             _db_path = _os.path.join(args.working_dir, "lightrag_users.db")
             user_db = init_user_db(_db_path)
             await user_db.initialize()
-            await user_db.migrate_from_env(global_args.auth_accounts)
+            await user_db.ensure_default_admin()
 
             # ── Knowledge-base database ───────────────────────────────────
             kb_db = init_kb_db(_db_path)
@@ -1362,15 +1336,10 @@ def create_app(args):
         username = form_data.username
         db = _get_user_db()
 
-        # Try DB-based authentication first (supports roles from DB)
         db_user = await db.verify_password(username, form_data.password)
-        if db_user:
-            role = db_user.role
-        elif auth_handler.verify_password(username, form_data.password):
-            # Fallback to ENV-based auth (backwards compat, assigns role=user)
-            role = "user"
-        else:
+        if not db_user:
             raise HTTPException(status_code=401, detail="Incorrect credentials")
+        role = db_user.role
 
         user_token = auth_handler.create_token(
             username=username, role=role, metadata={"auth_mode": "enabled"}

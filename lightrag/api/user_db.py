@@ -91,34 +91,25 @@ class UserDB:
         await asyncio.to_thread(self._init_schema)
         logger.info(f"UserDB initialized at {self.db_path}")
 
-    async def migrate_from_env(self, auth_accounts_str: str):
+    async def ensure_default_admin(self):
         """
-        Seed DB from AUTH_ACCOUNTS env string on first run.
-        Format: 'user1:pass1,user2:pass2,...'
-        First account gets role='admin', the rest get role='user'.
-        Already-existing users are skipped.
+        Create a default admin account (admin/admin) if no admin user exists in the DB.
+        This is called at startup to guarantee at least one admin is always available.
         """
-        if not auth_accounts_str:
-            return
-        existing = await self.count_users()
-        if existing > 0:
-            return  # DB already seeded, skip migration
+        def _has_admin() -> bool:
+            with self._connect() as conn:
+                row = conn.execute(
+                    "SELECT COUNT(*) FROM users WHERE role='admin'"
+                ).fetchone()
+                return row[0] > 0
 
-        accounts = []
-        for idx, entry in enumerate(auth_accounts_str.split(",")):
-            entry = entry.strip()
-            if not entry:
-                continue
-            try:
-                username, password = entry.split(":", 1)
-                role = "admin" if idx == 0 else "user"
-                accounts.append((username.strip(), password.strip(), role))
-            except ValueError:
-                logger.warning(f"UserDB: skipping invalid AUTH_ACCOUNTS entry: {entry}")
-
-        for username, password, role in accounts:
-            await self.create_user(username=username, password=password, role=role)
-            logger.info(f"UserDB: migrated account '{username}' (role={role})")
+        has_admin = await asyncio.to_thread(_has_admin)
+        if not has_admin:
+            await self.create_user(username="admin", password="admin", role="admin")
+            logger.info(
+                "UserDB: no admin account found – created default admin/admin. "
+                "Please change the password immediately."
+            )
 
     # ── CRUD ─────────────────────────────────────────────────────────────────
 

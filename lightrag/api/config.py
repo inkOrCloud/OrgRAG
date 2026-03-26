@@ -394,7 +394,6 @@ def parse_args() -> argparse.Namespace:
     args.whitelist_paths = get_env_value("WHITELIST_PATHS", "/health,/api/*")
 
     # For JWT Auth
-    args.auth_accounts = get_env_value("AUTH_ACCOUNTS", "")
     args.token_secret = get_env_value(
         "TOKEN_SECRET", "lightrag-jwt-default-secret-key!"
     )

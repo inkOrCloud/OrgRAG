@@ -84,10 +84,6 @@ for path in whitelist_paths:
         else:
             whitelist_patterns.append((path, False))  # (exact_path, is_prefix_match)
 
-# Global authentication configuration
-auth_configured = bool(auth_handler.accounts)
-
-
 def get_combined_auth_dependency(api_key: Optional[str] = None):
     """
     Create a combined authentication dependency that implements authentication logic
@@ -99,9 +95,6 @@ def get_combined_auth_dependency(api_key: Optional[str] = None):
     Returns:
         Callable: A dependency function that implements the authentication logic
     """
-    # Use global whitelist_patterns and auth_configured variables
-    # whitelist_patterns and auth_configured are already initialized at module level
-
     # Only calculate api_key_configured as it depends on the function parameter
     api_key_configured = bool(api_key)
 
@@ -318,7 +311,7 @@ def display_splash_screen(args: argparse.Namespace) -> None:
     ASCIIColors.white("    ├─ API Key: ", end="")
     ASCIIColors.yellow("Set" if args.key else "Not Set")
     ASCIIColors.white("    └─ JWT Auth: ", end="")
-    ASCIIColors.yellow("Enabled" if args.auth_accounts else "Disabled")
+    ASCIIColors.yellow("Enabled")
 
     # Directory Configuration
     ASCIIColors.magenta("\n📂 Directory Configuration:")
@@ -429,9 +422,8 @@ def display_splash_screen(args: argparse.Namespace) -> None:
         ASCIIColors.white("""    API Key authentication is enabled.
     Make sure to include the X-API-Key header in all your requests.
     """)
-    if args.auth_accounts:
-        ASCIIColors.yellow("\n⚠️  Security Notice:")
-        ASCIIColors.white("""    JWT authentication is enabled.
+    ASCIIColors.yellow("\n⚠️  Security Notice:")
+    ASCIIColors.white("""    JWT authentication is enabled.
     Make sure to login before making the request, and include the 'Authorization' in the header.
     """)
 
