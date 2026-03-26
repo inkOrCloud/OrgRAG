@@ -145,9 +145,16 @@ async def get_current_user(token: str = Security(_oauth2_scheme)) -> dict:
     """
     FastAPI dependency: extract and validate the current user from JWT token.
 
+    When authentication is not configured (no AUTH_ACCOUNTS), this dependency
+    returns a default admin-level context so that all KB / org routes remain
+    accessible without requiring a login.
+
     Returns a dict with keys: username, role, metadata, exp
-    Raises 401 if token is missing or invalid.
+    Raises 401 if token is missing or invalid (only when auth IS configured).
     """
+    if not auth_handler.accounts:
+        # Auth is disabled – allow all requests as a system admin
+        return {"username": "system", "role": "admin", "metadata": {}}
     if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

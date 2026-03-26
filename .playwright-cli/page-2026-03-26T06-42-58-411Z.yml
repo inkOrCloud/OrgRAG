@@ -1,0 +1,112 @@
+- generic [ref=e8]:
+  - complementary [ref=e9]:
+    - generic [ref=e10]:
+      - generic [ref=e11]:
+        - generic [ref=e12]: ⚡
+        - strong [ref=e14]: My Graph KB
+      - generic [ref=e15]:
+        - generic [ref=e16]: 当前知识库
+        - generic [ref=e17] [cursor=pointer]:
+          - generic [ref=e19]:
+            - combobox [ref=e21]
+            - generic "默认知识库" [ref=e22]:
+              - generic [ref=e23]:
+                - text: 默认知识库
+                - generic [ref=e24]: 默认
+          - img [ref=e25]:
+            - img [ref=e26]
+      - menu [ref=e28]:
+        - menuitem "file-text 文档管理" [ref=e29] [cursor=pointer]:
+          - img "file-text" [ref=e30]:
+            - img [ref=e31]
+          - generic [ref=e33]: 文档管理
+        - menuitem "search 知识库问答" [ref=e34] [cursor=pointer]:
+          - img "search" [ref=e35]:
+            - img [ref=e36]
+          - generic [ref=e38]: 知识库问答
+        - menuitem "api 知识图谱" [active] [ref=e39] [cursor=pointer]:
+          - img "api" [ref=e40]:
+            - img [ref=e41]
+          - generic [ref=e43]: 知识图谱
+      - generic [ref=e45]:
+        - generic [ref=e47]:
+          - generic [ref=e293]:
+            - img "check-circle" [ref=e294]:
+              - img [ref=e295]
+            - superscript [ref=e298]
+          - generic [ref=e55]: 运行正常
+        - generic [ref=e57]: 模型：gpt-5-mini
+  - generic [ref=e58]:
+    - banner [ref=e59]:
+      - button "menu-fold" [ref=e60] [cursor=pointer]:
+        - img "menu-fold" [ref=e62]:
+          - img [ref=e63]
+      - generic [ref=e65]:
+        - generic [ref=e67]: API v0277
+        - switch "moon sun" [ref=e69] [cursor=pointer]:
+          - generic [ref=e71]:
+            - generic:
+              - img "moon":
+                - img
+            - generic:
+              - img "sun":
+                - img
+        - img "user" [ref=e74] [cursor=pointer]:
+          - img [ref=e75]
+    - main [ref=e77]:
+      - generic [ref=e299]:
+        - generic [ref=e300]:
+          - generic [ref=e301]:
+            - generic [ref=e304]:
+              - img "apartment" [ref=e305]:
+                - img [ref=e306]
+              - text: 知识图谱
+            - generic [ref=e308]:
+              - generic [ref=e309]:
+                - generic [ref=e310]: 选择实体标签
+                - generic [ref=e311] [cursor=pointer]:
+                  - generic [ref=e313]:
+                    - combobox [ref=e315]
+                    - generic: 选择一个实体进行探索
+                  - generic:
+                    - img:
+                      - img
+              - generic [ref=e316]:
+                - generic [ref=e317]: 搜索实体
+                - generic [ref=e319]:
+                  - searchbox "输入实体名称搜索..." [ref=e320]
+                  - button "search" [ref=e322] [cursor=pointer]:
+                    - img "search" [ref=e324]:
+                      - img [ref=e325]
+              - generic [ref=e327]:
+                - generic [ref=e328]: 最大节点数：200
+                - slider [ref=e332] [cursor=pointer]
+              - generic [ref=e333]:
+                - generic [ref=e334]: 最大深度
+                - generic [ref=e335]:
+                  - generic:
+                    - button "Increase Value" [ref=e336] [cursor=pointer]:
+                      - img "up" [ref=e337]:
+                        - img [ref=e338]
+                    - button "Decrease Value" [ref=e340] [cursor=pointer]:
+                      - img "down" [ref=e341]:
+                        - img [ref=e342]
+                  - spinbutton [ref=e345]: "3"
+          - generic [ref=e346]:
+            - generic [ref=e349]: 视图控制
+            - generic [ref=e351]:
+              - button "zoom-in" [ref=e353] [cursor=pointer]:
+                - img "zoom-in" [ref=e355]:
+                  - img [ref=e356]
+              - button "zoom-out" [ref=e359] [cursor=pointer]:
+                - img "zoom-out" [ref=e361]:
+                  - img [ref=e362]
+              - button "fullscreen" [ref=e365] [cursor=pointer]:
+                - img "fullscreen" [ref=e367]:
+                  - img [ref=e368]
+        - generic [ref=e374]:
+          - img "apartment" [ref=e376]:
+            - img [ref=e377]
+          - generic [ref=e380]:
+            - heading "尚未选择图谱" [level=5] [ref=e381]
+            - text: 从左侧面板选择一个实体标签，即可可视化知识图谱

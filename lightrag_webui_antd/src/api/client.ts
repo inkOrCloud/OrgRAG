@@ -82,7 +82,7 @@ axiosInstance.interceptors.response.use(
     const isLoginEndpoint = url.startsWith('/login') || url.startsWith('/auth-status')
     if (err.response?.status === 401 && !isLoginEndpoint) {
       useAuthStore.getState().logout()
-      window.location.href = '/login'
+      window.location.href = '/webui/login'
     }
     return Promise.reject(err)
   }

@@ -1,0 +1,142 @@
+- generic [ref=e1]:
+  - generic [ref=e4]:
+    - complementary [ref=e5]:
+      - generic [ref=e6]:
+        - generic [ref=e7]:
+          - generic [ref=e8]: ⚡
+          - strong [ref=e10]: My Graph KB
+        - generic [ref=e11]:
+          - generic [ref=e12]: 当前知识库
+          - generic [ref=e13] [cursor=pointer]:
+            - generic [ref=e15]:
+              - combobox [ref=e17]
+              - generic "默认知识库" [ref=e18]:
+                - generic [ref=e19]:
+                  - text: 默认知识库
+                  - generic [ref=e20]: 默认
+            - img [ref=e21]:
+              - img [ref=e22]
+        - menu [ref=e24]:
+          - menuitem "file-text 文档管理" [ref=e25] [cursor=pointer]:
+            - img "file-text" [ref=e26]:
+              - img [ref=e27]
+            - generic [ref=e29]: 文档管理
+          - menuitem "search 知识库问答" [ref=e30] [cursor=pointer]:
+            - img "search" [ref=e31]:
+              - img [ref=e32]
+            - generic [ref=e34]: 知识库问答
+          - menuitem "api 知识图谱" [ref=e35] [cursor=pointer]:
+            - img "api" [ref=e36]:
+              - img [ref=e37]
+            - generic [ref=e39]: 知识图谱
+        - generic [ref=e41]:
+          - generic [ref=e43]:
+            - generic [ref=e247]:
+              - img "check-circle" [ref=e248]:
+                - img [ref=e249]
+              - superscript [ref=e252]
+            - generic [ref=e51]: 运行正常
+          - generic [ref=e53]: 模型：gpt-5-mini
+    - generic [ref=e54]:
+      - banner [ref=e55]:
+        - button "menu-fold" [ref=e56] [cursor=pointer]:
+          - img "menu-fold" [ref=e58]:
+            - img [ref=e59]
+        - generic [ref=e61]:
+          - switch "moon sun" [checked] [active] [ref=e63] [cursor=pointer]:
+            - generic [ref=e65]:
+              - generic:
+                - img "moon":
+                  - img
+              - generic:
+                - img "sun":
+                  - img
+          - img "user" [ref=e68] [cursor=pointer]:
+            - img [ref=e69]
+      - main [ref=e71]:
+        - generic [ref=e72]:
+          - generic [ref=e73]:
+            - heading "文档管理" [level=4] [ref=e74]
+            - generic [ref=e75]:
+              - button "info-circle 管道状态" [ref=e77] [cursor=pointer]:
+                - img "info-circle" [ref=e79]:
+                  - img [ref=e80]
+                - generic [ref=e83]: 管道状态
+              - button "scan 扫描目录" [ref=e85] [cursor=pointer]:
+                - img "scan" [ref=e87]:
+                  - img [ref=e88]
+                - generic [ref=e90]: 扫描目录
+              - button "clear 清除缓存" [ref=e92] [cursor=pointer]:
+                - img "clear" [ref=e94]:
+                  - img [ref=e95]
+                - generic [ref=e97]: 清除缓存
+              - button "plus 插入文本" [ref=e99] [cursor=pointer]:
+                - img "plus" [ref=e101]:
+                  - img [ref=e102]
+                - generic [ref=e105]: 插入文本
+              - button "upload 上传文件" [ref=e107] [cursor=pointer]:
+                - img "upload" [ref=e109]:
+                  - img [ref=e110]
+                - generic [ref=e112]: 上传文件
+          - generic [ref=e113]:
+            - generic [ref=e117]:
+              - generic [ref=e119]:
+                - img "file-text" [ref=e122]:
+                  - img [ref=e123]
+                - generic [ref=e125]: 全部
+              - generic [ref=e127]: "0"
+            - generic [ref=e131]:
+              - generic [ref=e133]:
+                - img "check-circle" [ref=e136]:
+                  - img [ref=e137]
+                - generic [ref=e140]: 已完成
+              - generic [ref=e142]: "0"
+            - generic [ref=e146]:
+              - generic [ref=e148]:
+                - img "loading" [ref=e151]:
+                  - img [ref=e152]
+                - generic [ref=e154]: 处理中
+              - generic [ref=e156]: "0"
+            - generic [ref=e160]:
+              - generic [ref=e162]:
+                - img "clock-circle" [ref=e165]:
+                  - img [ref=e166]
+                - generic [ref=e169]: 等待中
+              - generic [ref=e171]: "0"
+            - generic [ref=e175]:
+              - generic [ref=e177]:
+                - img "close-circle" [ref=e180]:
+                  - img [ref=e181]
+                - generic [ref=e183]: 失败
+              - generic [ref=e185]: "0"
+          - generic [ref=e186]:
+            - generic [ref=e187]:
+              - generic [ref=e188]: 按状态筛选：
+              - generic [ref=e190] [cursor=pointer]:
+                - generic [ref=e192]:
+                  - combobox [ref=e194]
+                  - generic: 全部状态
+                - generic:
+                  - img:
+                    - img
+            - button "reload 刷新" [ref=e195] [cursor=pointer]:
+              - img "reload" [ref=e197]:
+                - img [ref=e198]
+              - generic [ref=e200]: 刷新
+          - table [ref=e216]:
+            - rowgroup [ref=e225]:
+              - row "文件路径 状态 分块数 大小 更新时间 错误 操作" [ref=e226]:
+                - columnheader "文件路径" [ref=e227]
+                - columnheader "状态" [ref=e228]
+                - columnheader "分块数" [ref=e229]
+                - columnheader "大小" [ref=e230]
+                - columnheader "更新时间" [ref=e231]
+                - columnheader "错误" [ref=e232]
+                - columnheader "操作" [ref=e233]
+            - rowgroup [ref=e234]:
+              - row "No data No data" [ref=e235]:
+                - cell "No data No data" [ref=e236]:
+                  - generic [ref=e238]:
+                    - img "No data" [ref=e240]
+                    - generic [ref=e246]: No data
+  - tooltip "切换亮色模式" [ref=e255]

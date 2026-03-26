@@ -47,7 +47,7 @@ export default function App() {
       }}
     >
       <AntdApp>
-        <BrowserRouter>
+        <BrowserRouter basename="/webui">
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route

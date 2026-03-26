@@ -1,0 +1,90 @@
+- generic [ref=e8]:
+  - complementary [ref=e9]:
+    - generic [ref=e10]:
+      - generic [ref=e11]:
+        - generic [ref=e12]: ⚡
+        - strong [ref=e14]: My Graph KB
+      - generic [ref=e15]:
+        - generic [ref=e16]: 当前知识库
+        - generic [ref=e17] [cursor=pointer]:
+          - generic [ref=e19]:
+            - combobox [ref=e21]
+            - generic "默认知识库" [ref=e22]:
+              - generic [ref=e23]:
+                - text: 默认知识库
+                - generic [ref=e24]: 默认
+          - img [ref=e25]:
+            - img [ref=e26]
+      - menu [ref=e28]:
+        - menuitem "file-text 文档管理" [ref=e29] [cursor=pointer]:
+          - img "file-text" [ref=e30]:
+            - img [ref=e31]
+          - generic [ref=e33]: 文档管理
+        - menuitem "search 知识库问答" [active] [ref=e34] [cursor=pointer]:
+          - img "search" [ref=e35]:
+            - img [ref=e36]
+          - generic [ref=e38]: 知识库问答
+        - menuitem "api 知识图谱" [ref=e39] [cursor=pointer]:
+          - img "api" [ref=e40]:
+            - img [ref=e41]
+          - generic [ref=e43]: 知识图谱
+      - generic [ref=e45]:
+        - generic [ref=e47]:
+          - generic [ref=e246]:
+            - img "check-circle" [ref=e247]:
+              - img [ref=e248]
+            - superscript [ref=e251]
+          - generic [ref=e55]: 运行正常
+        - generic [ref=e57]: 模型：gpt-5-mini
+  - generic [ref=e58]:
+    - banner [ref=e59]:
+      - button "menu-fold" [ref=e60] [cursor=pointer]:
+        - img "menu-fold" [ref=e62]:
+          - img [ref=e63]
+      - generic [ref=e65]:
+        - generic [ref=e67]: API v0277
+        - switch "moon sun" [ref=e69] [cursor=pointer]:
+          - generic [ref=e71]:
+            - generic:
+              - img "moon":
+                - img
+            - generic:
+              - img "sun":
+                - img
+        - img "user" [ref=e74] [cursor=pointer]:
+          - img [ref=e75]
+    - main [ref=e77]:
+      - generic [ref=e253]:
+        - generic [ref=e254]:
+          - generic [ref=e255]:
+            - heading "知识库问答" [level=5] [ref=e257]
+            - generic [ref=e259]: 混合模式
+          - generic [ref=e260]:
+            - button "history" [ref=e263] [cursor=pointer]:
+              - img "history" [ref=e265]:
+                - img [ref=e266]
+            - button "setting 参数设置" [ref=e269] [cursor=pointer]:
+              - img "setting" [ref=e271]:
+                - img [ref=e272]
+              - generic [ref=e274]: 参数设置
+        - generic [ref=e276]:
+          - img "robot" [ref=e277]:
+            - img [ref=e278]
+          - heading "向 My Graph KB 提问" [level=4] [ref=e280]
+          - generic [ref=e281]:
+            - text: 检索模式：
+            - generic [ref=e282]: 混合模式
+            - text: Top-K：
+            - generic [ref=e283]: "60"
+          - generic [ref=e284]:
+            - generic [ref=e285] [cursor=pointer]: 知识库中有哪些主要实体？
+            - generic [ref=e286] [cursor=pointer]: 总结一下关键的实体关系
+            - generic [ref=e287] [cursor=pointer]: 这个知识库涵盖了哪些主题？
+        - generic [ref=e288]:
+          - generic [ref=e289]:
+            - textbox "输入问题，按 Enter 发送，Shift+Enter 换行..." [ref=e290]
+            - button "send" [disabled] [ref=e291]:
+              - generic:
+                - img "send":
+                  - img
+          - generic [ref=e292]: ⚡ 流式输出 · 模式：混合模式 · Top-K：60

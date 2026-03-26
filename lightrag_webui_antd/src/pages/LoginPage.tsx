@@ -156,7 +156,7 @@ export default function LoginPage() {
           />
         )}
 
-        {authConfigured ? (
+        {authConfigured && (
           <>
             <Form
               layout="vertical"
