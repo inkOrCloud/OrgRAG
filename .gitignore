@@ -87,3 +87,6 @@ CLAUDE.md
 
 # Google Jules
 .jules/
+
+# Playwright CLI session artifacts (screenshots, snapshots, console logs)
+.playwright-cli/
