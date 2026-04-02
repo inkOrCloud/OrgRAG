@@ -68,6 +68,7 @@ from lightrag.api.kb_manager import (
     doc_manager_proxy,
     _current_rag,
     _current_doc_manager,
+    _current_kb_id,
 )
 
 from lightrag.utils import logger, set_verbose_debug
@@ -1258,7 +1259,7 @@ def create_app(args):
                     pass  # Invalid / expired token – let the auth dependency handle it
 
         try:
-            t1, t2 = mgr.set_current_request(kb_id)
+            t1, t2, t3 = mgr.set_current_request(kb_id)
         except KeyError:
             return _JSONResponse(
                 status_code=404,
@@ -1270,6 +1271,7 @@ def create_app(args):
         finally:
             _current_rag.reset(t1)
             _current_doc_manager.reset(t2)
+            _current_kb_id.reset(t3)
 
         return response
 
@@ -1509,6 +1511,11 @@ def create_app(args):
                 response.headers["Content-Type"] = "text/css"
 
             return response
+
+    # Mount user avatars directory (create it first so StaticFiles doesn't raise)
+    avatars_dir = Path(global_args.working_dir) / "avatars"
+    avatars_dir.mkdir(parents=True, exist_ok=True)
+    app.mount("/avatars", StaticFiles(directory=avatars_dir), name="user-avatars")
 
     # Mount Swagger UI static files for offline support
     swagger_static_dir = Path(__file__).parent / "static" / "swagger-ui"

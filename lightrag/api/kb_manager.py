@@ -23,6 +23,12 @@ from lightrag.utils import logger
 
 _current_rag: ContextVar[Any] = ContextVar("current_rag", default=None)
 _current_doc_manager: ContextVar[Any] = ContextVar("current_doc_manager", default=None)
+_current_kb_id: ContextVar[Optional[str]] = ContextVar("current_kb_id", default=None)
+
+
+def get_current_kb_id() -> Optional[str]:
+    """Return the KB ID bound to the current async context (request or background task)."""
+    return _current_kb_id.get()
 
 
 # ── Transparent Proxies ───────────────────────────────────────────────────────
@@ -215,7 +221,8 @@ class KnowledgeBaseManager:
         dm = self.get_doc_manager(kb_id)
         t1 = _current_rag.set(rag)
         t2 = _current_doc_manager.set(dm)
-        return t1, t2
+        t3 = _current_kb_id.set(kb_id)
+        return t1, t2, t3
 
     @property
     def default_kb_id(self) -> str:

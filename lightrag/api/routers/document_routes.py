@@ -30,6 +30,7 @@ from lightrag.utils import (
 )
 from lightrag.api.utils_api import get_combined_auth_dependency
 from ..config import global_args
+from ..kb_manager import get_current_kb_id
 
 
 @lru_cache(maxsize=1)
@@ -966,17 +967,154 @@ def get_unique_filename_in_enqueued(target_dir: Path, original_name: str) -> str
 
 
 def _convert_with_docling(file_path: Path) -> str:
-    """Convert document using docling (synchronous).
-
-    Args:
-        file_path: Path to the document file
-
-    Returns:
-        str: Extracted markdown content
-    """
+    """Convert document using docling standard pipeline (synchronous)."""
     from docling.document_converter import DocumentConverter  # type: ignore
 
     converter = DocumentConverter()
+    result = converter.convert(file_path)
+    return result.document.export_to_markdown()
+
+
+def _get_effective_docling_vlm_config(kb_settings: dict | None) -> dict:
+    """Merge global VLM config with per-KB overrides.
+
+    Returns a flat dict with resolved values for all VLM config keys.
+    KB-level settings take precedence over global_args; None means inherit.
+    """
+    kb = kb_settings or {}
+    return {
+        "enabled": kb.get("docling_vlm_enabled") if kb.get("docling_vlm_enabled") is not None else getattr(global_args, "docling_vlm_enabled", False),
+        "mode": kb.get("docling_vlm_mode") or getattr(global_args, "docling_vlm_mode", "auto"),
+        "engine": kb.get("docling_vlm_engine") or getattr(global_args, "docling_vlm_engine", "ollama"),
+        "url": kb.get("docling_vlm_url") or getattr(global_args, "docling_vlm_url", None),
+        "api_key": kb.get("docling_vlm_api_key") or getattr(global_args, "docling_vlm_api_key", None),
+        "model": kb.get("docling_vlm_model") or getattr(global_args, "docling_vlm_model", None),
+        "timeout": kb.get("docling_vlm_timeout") or getattr(global_args, "docling_vlm_timeout", 120),
+        "concurrency": getattr(global_args, "docling_vlm_concurrency", 1),
+        "preset": kb.get("docling_vlm_preset") or getattr(global_args, "docling_vlm_preset", "pixtral"),
+    }
+
+
+def _build_docling_api_engine_options(vlm_cfg: dict):
+    """Build an ApiVlmEngineOptions from resolved VLM config dict."""
+    from docling.datamodel.vlm_engine_options import ApiVlmEngineOptions, VlmEngineType  # type: ignore
+
+    engine_map = {
+        "ollama": VlmEngineType.API_OLLAMA,
+        "openai": VlmEngineType.API_OPENAI,
+        "lmstudio": VlmEngineType.API_LMSTUDIO,
+        "api": VlmEngineType.API,
+    }
+    engine_type = engine_map.get(vlm_cfg["engine"], VlmEngineType.API_OLLAMA)
+
+    kwargs: dict = {
+        "engine_type": engine_type,
+        "timeout": float(vlm_cfg["timeout"]),
+        "concurrency": vlm_cfg["concurrency"],
+    }
+    if vlm_cfg.get("url"):
+        kwargs["url"] = vlm_cfg["url"]
+    if vlm_cfg.get("api_key"):
+        kwargs["headers"] = {"Authorization": f"Bearer {vlm_cfg['api_key']}"}
+    if vlm_cfg.get("model"):
+        kwargs["params"] = {"model": vlm_cfg["model"]}
+
+    return ApiVlmEngineOptions(**kwargs)
+
+
+def _convert_with_docling_vlm_convert(file_path: Path, vlm_cfg: dict) -> str:
+    """Full-page VLM conversion pipeline (synchronous).
+
+    Replaces the standard OCR/layout pipeline with a VLM that processes each
+    page as an image. Ideal for scanned documents and image-heavy PDFs.
+    Uses the granite_docling preset by default (258 M params, Ollama-compatible).
+
+    Note: Called from asyncio.to_thread – must remain synchronous.
+
+    Note: We use FormatOption(pipeline_cls=VlmPipeline) instead of PdfFormatOption
+    because PdfFormatOption hardcodes pipeline_cls=StandardPdfPipeline, which
+    calls _make_ocr_model() and accesses pipeline_options.ocr_options — an
+    attribute that VlmPipelineOptions does not have.
+    """
+    from docling.document_converter import DocumentConverter, FormatOption  # type: ignore
+    from docling.datamodel.base_models import InputFormat  # type: ignore
+    from docling.datamodel.pipeline_options import VlmPipelineOptions, VlmConvertOptions  # type: ignore
+    from docling.datamodel.vlm_engine_options import AutoInlineVlmEngineOptions  # type: ignore
+    from docling.pipeline.vlm_pipeline import VlmPipeline  # type: ignore
+    from docling.backend.docling_parse_backend import DoclingParseDocumentBackend  # type: ignore
+
+    engine = vlm_cfg.get("engine", "ollama")
+    logger.info(
+        f"[Docling VLM] ENTER _convert_with_docling_vlm_convert: "
+        f"file={file_path}, engine={engine}, url={vlm_cfg.get('url')}, "
+        f"model={vlm_cfg.get('model')}, preset={vlm_cfg.get('preset', 'pixtral')}"
+    )
+    if engine == "local":
+        engine_options = AutoInlineVlmEngineOptions()
+    else:
+        engine_options = _build_docling_api_engine_options(vlm_cfg)
+
+    preset = vlm_cfg.get("preset", "pixtral")
+    vlm_options = VlmConvertOptions.from_preset(preset, engine_options=engine_options)
+    pipeline_options = VlmPipelineOptions(
+        vlm_options=vlm_options,
+        enable_remote_services=(engine != "local"),
+    )
+
+    converter = DocumentConverter(
+        format_options={
+            InputFormat.PDF: FormatOption(
+                pipeline_cls=VlmPipeline,
+                pipeline_options=pipeline_options,
+                backend=DoclingParseDocumentBackend,
+            )
+        }
+    )
+    try:
+        result = converter.convert(file_path)
+    except Exception as conv_exc:
+        logger.error(f"[Docling VLM] converter.convert failed for {file_path.name}: {conv_exc}", exc_info=True)
+        return ""
+    markdown = result.document.export_to_markdown()
+    logger.info(
+        f"[Docling VLM] {file_path.name}: "
+        f"preset={preset}, markdown_len={len(markdown)}, "
+        f"doc_items={sum(1 for _ in result.document.iterate_items())}"
+    )
+    return markdown
+
+
+def _convert_with_docling_picture_description(file_path: Path, vlm_cfg: dict) -> str:
+    """Standard Docling pipeline with VLM picture description (synchronous).
+
+    Runs the normal layout/OCR pipeline and additionally generates natural-language
+    descriptions for every detected image/figure via VLM. The descriptions are
+    embedded in the exported Markdown so they are indexed by LightRAG.
+    """
+    from docling.document_converter import DocumentConverter, PdfFormatOption  # type: ignore
+    from docling.datamodel.base_models import InputFormat  # type: ignore
+    from docling.datamodel.pipeline_options import (  # type: ignore
+        PdfPipelineOptions,
+        PictureDescriptionVlmEngineOptions,
+    )
+    from docling.datamodel.vlm_engine_options import AutoInlineVlmEngineOptions  # type: ignore
+
+    engine = vlm_cfg.get("engine", "ollama")
+    if engine == "local":
+        engine_options = AutoInlineVlmEngineOptions()
+    else:
+        engine_options = _build_docling_api_engine_options(vlm_cfg)
+
+    picture_desc_options = PictureDescriptionVlmEngineOptions(engine_options=engine_options)
+    pipeline_options = PdfPipelineOptions(
+        do_picture_description=True,
+        picture_description_options=picture_desc_options,
+        enable_remote_services=(engine != "local"),
+    )
+
+    converter = DocumentConverter(
+        format_options={InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)}
+    )
     result = converter.convert(file_path)
     return result.document.export_to_markdown()
 
@@ -1226,7 +1364,10 @@ def _extract_xlsx(file_bytes: bytes) -> str:
 
 
 async def pipeline_enqueue_file(
-    rag: LightRAG, file_path: Path, track_id: str = None
+    rag: LightRAG,
+    file_path: Path,
+    track_id: str = None,
+    kb_settings: dict | None = None,
 ) -> tuple[bool, str]:
     """Add a file to the queue for processing
 
@@ -1234,6 +1375,7 @@ async def pipeline_enqueue_file(
         rag: LightRAG instance
         file_path: Path to the saved file
         track_id: Optional tracking ID, if not provided will be generated
+        kb_settings: Optional per-KB settings dict; used to resolve Docling VLM config
     Returns:
         tuple: (success: bool, track_id: str)
     """
@@ -1398,23 +1540,48 @@ async def pipeline_enqueue_file(
 
                 case ".pdf":
                     try:
-                        # Try DOCLING first if configured and available
-                        if (
+                        use_docling = (
                             global_args.document_loading_engine == "DOCLING"
                             and _is_docling_available()
-                        ):
-                            content = await asyncio.to_thread(
-                                _convert_with_docling, file_path
+                        )
+                        if not use_docling and global_args.document_loading_engine == "DOCLING":
+                            logger.warning(
+                                f"DOCLING engine configured but not available for {file_path.name}. Falling back to pypdf."
                             )
-                        else:
-                            if (
-                                global_args.document_loading_engine == "DOCLING"
-                                and not _is_docling_available()
-                            ):
-                                logger.warning(
-                                    f"DOCLING engine configured but not available for {file_path.name}. Falling back to pypdf."
+
+                        if use_docling:
+                            vlm_cfg = _get_effective_docling_vlm_config(kb_settings)
+                            mode = vlm_cfg["mode"] if vlm_cfg["enabled"] else "disabled"
+
+                            if mode == "auto":
+                                # Probe with pypdf; switch to vlm_convert for scanned docs
+                                probe = await asyncio.to_thread(
+                                    _extract_pdf_pypdf, file, global_args.pdf_decrypt_password
                                 )
-                            # Use pypdf (non-blocking via to_thread)
+                                if probe.strip():
+                                    content = probe
+                                    logger.debug(f"[Docling] auto mode: text layer detected, using pypdf for {file_path.name}")
+                                else:
+                                    logger.info(f"[Docling] auto mode: no text layer, using VLM Convert for {file_path.name}")
+                                    content = await asyncio.to_thread(
+                                        _convert_with_docling_vlm_convert, file_path, vlm_cfg
+                                    )
+                            elif mode == "vlm_convert":
+                                logger.info(f"[Docling] VLM Convert mode for {file_path.name}")
+                                content = await asyncio.to_thread(
+                                    _convert_with_docling_vlm_convert, file_path, vlm_cfg
+                                )
+                            elif mode == "picture_description":
+                                logger.info(f"[Docling] Picture Description mode for {file_path.name}")
+                                content = await asyncio.to_thread(
+                                    _convert_with_docling_picture_description, file_path, vlm_cfg
+                                )
+                            else:
+                                # "disabled" or unknown: standard Docling without VLM
+                                content = await asyncio.to_thread(
+                                    _convert_with_docling, file_path
+                                )
+                        else:
                             content = await asyncio.to_thread(
                                 _extract_pdf_pypdf,
                                 file,
@@ -1682,17 +1849,23 @@ async def pipeline_enqueue_file(
                 logger.error(f"Error deleting file {file_path}: {str(e)}")
 
 
-async def pipeline_index_file(rag: LightRAG, file_path: Path, track_id: str = None):
+async def pipeline_index_file(
+    rag: LightRAG,
+    file_path: Path,
+    track_id: str = None,
+    kb_settings: dict | None = None,
+):
     """Index a file with track_id
 
     Args:
         rag: LightRAG instance
         file_path: Path to the saved file
         track_id: Optional tracking ID
+        kb_settings: Optional per-KB settings for Docling VLM routing
     """
     try:
         success, returned_track_id = await pipeline_enqueue_file(
-            rag, file_path, track_id
+            rag, file_path, track_id, kb_settings=kb_settings
         )
         if success:
             await rag.apipeline_process_enqueue_documents()
@@ -1703,7 +1876,10 @@ async def pipeline_index_file(rag: LightRAG, file_path: Path, track_id: str = No
 
 
 async def pipeline_index_files(
-    rag: LightRAG, file_paths: List[Path], track_id: str = None
+    rag: LightRAG,
+    file_paths: List[Path],
+    track_id: str = None,
+    kb_settings: dict | None = None,
 ):
     """Index multiple files sequentially to avoid high CPU load
 
@@ -1711,6 +1887,7 @@ async def pipeline_index_files(
         rag: LightRAG instance
         file_paths: Paths to the files to index
         track_id: Optional tracking ID to pass to all files
+        kb_settings: Optional per-KB settings for Docling VLM routing
     """
     if not file_paths:
         return
@@ -1724,7 +1901,9 @@ async def pipeline_index_files(
 
         # Process files sequentially with track_id
         for file_path in sorted_file_paths:
-            success, _ = await pipeline_enqueue_file(rag, file_path, track_id)
+            success, _ = await pipeline_enqueue_file(
+                rag, file_path, track_id, kb_settings=kb_settings
+            )
             if success:
                 enqueued = True
 
@@ -1772,7 +1951,10 @@ async def pipeline_index_texts(
 
 
 async def run_scanning_process(
-    rag: LightRAG, doc_manager: DocumentManager, track_id: str = None
+    rag: LightRAG,
+    doc_manager: DocumentManager,
+    track_id: str = None,
+    kb_settings: dict | None = None,
 ):
     """Background task to scan and index documents
 
@@ -1780,6 +1962,7 @@ async def run_scanning_process(
         rag: LightRAG instance
         doc_manager: DocumentManager instance
         track_id: Optional tracking ID to pass to all scanned files
+        kb_settings: Optional per-KB settings for Docling VLM routing
     """
     try:
         new_files = doc_manager.scan_directory_for_new_files()
@@ -1805,7 +1988,7 @@ async def run_scanning_process(
 
             # Process valid files (new files + non-PROCESSED status files)
             if valid_files:
-                await pipeline_index_files(rag, valid_files, track_id)
+                await pipeline_index_files(rag, valid_files, track_id, kb_settings=kb_settings)
                 if processed_files:
                     logger.info(
                         f"Scanning process completed: {len(valid_files)} files Processed {len(processed_files)} skipped."
@@ -2103,8 +2286,22 @@ def create_document_routes(
         # Generate track_id with "scan" prefix for scanning operation
         track_id = generate_track_id("scan")
 
+        # Fetch per-KB settings for Docling VLM routing (best-effort; no failure on error)
+        kb_settings: dict | None = None
+        try:
+            from ..kb_db import get_kb_db  # type: ignore
+
+            kb_id = get_current_kb_id()
+            if kb_id:
+                kb_db = get_kb_db()
+                kb_settings = await kb_db.get_kb_settings(kb_id) or {}
+        except Exception:
+            pass  # Fall back to global_args
+
         # Start the scanning process in the background with track_id
-        background_tasks.add_task(run_scanning_process, rag, doc_manager, track_id)
+        background_tasks.add_task(
+            run_scanning_process, rag, doc_manager, track_id, kb_settings
+        )
         return ScanResponse(
             status="scanning_started",
             message="Scanning process has been initiated in the background",
@@ -2213,13 +2410,27 @@ def create_document_routes(
                 )
 
             file_path = doc_manager.input_dir / safe_filename
-            # Check if file already exists in file system
+            # Check if file already exists in file system.
+            # If the file is present but no doc_status record exists, it is an orphan
+            # left behind by a failed processing run (e.g. the file was never moved to
+            # __enqueued__). Overwriting it is safe and the correct behaviour; we log a
+            # warning for transparency instead of blocking the re-upload.
             if file_path.exists():
-                return InsertResponse(
-                    status="duplicated",
-                    message=f"File '{safe_filename}' already exists in the input directory.",
-                    track_id="",
+                logger.warning(
+                    f"Orphan file '{safe_filename}' found in input directory without a "
+                    f"matching doc_status record. It will be overwritten by the new upload."
                 )
+                try:
+                    file_path.unlink()
+                except Exception as unlink_err:
+                    logger.error(
+                        f"Failed to remove orphan file '{safe_filename}': {unlink_err}"
+                    )
+                    return InsertResponse(
+                        status="error",
+                        message=f"File '{safe_filename}' already exists in the input directory and could not be removed. Please delete it manually.",
+                        track_id="",
+                    )
 
             # Async streaming write with size check
             bytes_written = 0
@@ -2262,8 +2473,22 @@ def create_document_routes(
 
             track_id = generate_track_id("upload")
 
+            # Fetch per-KB settings for Docling VLM routing (best-effort; no failure on error)
+            kb_settings: dict | None = None
+            try:
+                from ..kb_db import get_kb_db  # type: ignore
+
+                kb_id = get_current_kb_id()
+                if kb_id:
+                    kb_db = get_kb_db()
+                    kb_settings = await kb_db.get_kb_settings(kb_id) or {}
+            except Exception:
+                pass  # Fall back to global_args
+
             # Add to background tasks and get track_id
-            background_tasks.add_task(pipeline_index_file, rag, file_path, track_id)
+            background_tasks.add_task(
+                pipeline_index_file, rag, file_path, track_id, kb_settings
+            )
 
             return InsertResponse(
                 status="success",

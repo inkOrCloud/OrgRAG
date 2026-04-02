@@ -15,6 +15,8 @@ interface AuthState {
   apiVersion: string
   webuiTitle: string
   webuiDescription: string
+  /** Relative avatar path returned by the server, e.g. /avatars/xxx.png */
+  avatarUrl: string
   /**
    * True when the server reports that initial setup has not been completed.
    * Starts as null (unknown) and is set after the first auth-status check.
@@ -35,6 +37,7 @@ interface AuthState {
     webuiDescription?: string
     username?: string
   }) => void
+  setAvatarUrl: (url: string) => void
   setSetupRequired: (required: boolean) => void
   logout: () => void
 }
@@ -51,6 +54,7 @@ export const useAuthStore = create<AuthState>()(
       apiVersion: '',
       webuiTitle: 'LightRAG',
       webuiDescription: '',
+      avatarUrl: '',
       setupRequired: null,
 
       isAdmin: () => get().role === 'admin',
@@ -74,6 +78,8 @@ export const useAuthStore = create<AuthState>()(
         })
       },
 
+      setAvatarUrl: (url) => set({ avatarUrl: url }),
+
       setSetupRequired: (required) => {
         set({ setupRequired: required })
       },
@@ -85,6 +91,7 @@ export const useAuthStore = create<AuthState>()(
           isAuthenticated: false,
           role: 'user',
           username: '',
+          avatarUrl: '',
           setupRequired: null,
         })
       },
@@ -99,6 +106,7 @@ export const useAuthStore = create<AuthState>()(
         authMode: state.authMode,
         webuiTitle: state.webuiTitle,
         webuiDescription: state.webuiDescription,
+        avatarUrl: state.avatarUrl,
       }),
     }
   )

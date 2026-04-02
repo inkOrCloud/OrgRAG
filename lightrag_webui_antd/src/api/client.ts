@@ -257,6 +257,14 @@ export async function deleteDocument(docId: string): Promise<DocActionResponse> 
   return data
 }
 
+export async function deleteDocuments(docIds: string[]): Promise<DocActionResponse> {
+  const { data } = await axiosInstance.delete<DocActionResponse>(
+    `/documents/delete_document`,
+    { data: { doc_ids: docIds, delete_file: false, delete_llm_cache: false } }
+  )
+  return data
+}
+
 export async function clearCache(): Promise<{ status: string; message: string }> {
   const { data } = await axiosInstance.post('/documents/clear_cache')
   return data
@@ -428,6 +436,22 @@ export async function getMe(): Promise<UserResponse> {
 
 export async function changeMyPassword(req: ChangePasswordRequest): Promise<{ message: string }> {
   const { data } = await axiosInstance.put<{ message: string }>('/users/me/password', req)
+  return data
+}
+
+export async function uploadMyAvatar(file: File): Promise<{ avatar_url: string; message: string }> {
+  const form = new FormData()
+  form.append('file', file)
+  const { data } = await axiosInstance.post<{ avatar_url: string; message: string }>(
+    '/users/me/avatar',
+    form,
+    { headers: { 'Content-Type': 'multipart/form-data' } },
+  )
+  return data
+}
+
+export async function deleteMyAvatar(): Promise<{ message: string }> {
+  const { data } = await axiosInstance.delete<{ message: string }>('/users/me/avatar')
   return data
 }
 

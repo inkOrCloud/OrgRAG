@@ -21,7 +21,7 @@ from typing import Any, Optional
 from sqlite3 import IntegrityError
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Security, UploadFile, File
 from fastapi.responses import FileResponse, StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from lightrag.api.kb_db import get_kb_db
 from lightrag.api.kb_manager import get_kb_manager
@@ -287,14 +287,61 @@ async def get_kb_stats(kb_id: str, current_user: dict = Security(get_current_use
 # ── Settings (Phase 3) ────────────────────────────────────────────────────────
 
 class KBSettingsRequest(BaseModel):
-    mode: Optional[str] = None
-    top_k: Optional[int] = None
-    chunk_top_k: Optional[int] = None
-    max_entity_tokens: Optional[int] = None
-    max_relation_tokens: Optional[int] = None
-    max_total_tokens: Optional[int] = None
-    enable_rerank: Optional[bool] = None
-    response_type: Optional[str] = None
+    mode: Optional[str] = Field(
+        default=None,
+        description="Query mode: local | global | hybrid | naive | mix",
+        json_schema_extra={"example": "hybrid"},
+    )
+    top_k: Optional[int] = Field(default=None, description="Number of top KG entities/relations to retrieve", ge=1)
+    chunk_top_k: Optional[int] = Field(default=None, description="Number of top text chunks to retrieve", ge=1)
+    max_entity_tokens: Optional[int] = Field(default=None, description="Max tokens for entity context", ge=1)
+    max_relation_tokens: Optional[int] = Field(default=None, description="Max tokens for relation context", ge=1)
+    max_total_tokens: Optional[int] = Field(default=None, description="Max total tokens for LLM context", ge=1)
+    enable_rerank: Optional[bool] = Field(default=None, description="Enable reranking of retrieved chunks")
+    response_type: Optional[str] = Field(default=None, description="Preferred response format hint for the LLM")
+
+    # ── Docling VLM settings ──────────────────────────────────────────────────
+    # All fields are per-KB overrides; None means inherit the global server config.
+    docling_vlm_enabled: Optional[bool] = Field(
+        default=None,
+        description="Enable VLM-assisted document parsing for this KB (overrides DOCLING_VLM_ENABLED env var)",
+    )
+    docling_vlm_mode: Optional[str] = Field(
+        default=None,
+        description=(
+            "Docling VLM processing mode (overrides DOCLING_VLM_MODE env var). "
+            "Allowed values: auto | picture_description | vlm_convert | disabled. "
+            "'auto' probes for a text layer and falls back to vlm_convert for scanned docs."
+        ),
+        json_schema_extra={"example": "auto"},
+    )
+    docling_vlm_engine: Optional[str] = Field(
+        default=None,
+        description=(
+            "VLM inference engine (overrides DOCLING_VLM_ENGINE env var). "
+            "Allowed values: ollama | openai | lmstudio | api | local."
+        ),
+        json_schema_extra={"example": "ollama"},
+    )
+    docling_vlm_url: Optional[str] = Field(
+        default=None,
+        description="Custom VLM API endpoint URL; required when engine=api (overrides DOCLING_VLM_URL)",
+        json_schema_extra={"example": "http://localhost:11434/v1/chat/completions"},
+    )
+    docling_vlm_api_key: Optional[str] = Field(
+        default=None,
+        description="Bearer API key for the VLM endpoint (overrides DOCLING_VLM_API_KEY)",
+    )
+    docling_vlm_model: Optional[str] = Field(
+        default=None,
+        description="Model name override; leave None to use the preset default (overrides DOCLING_VLM_MODEL)",
+        json_schema_extra={"example": "ibm/granite-docling:258m"},
+    )
+    docling_vlm_timeout: Optional[int] = Field(
+        default=None,
+        description="Per-request VLM API timeout in seconds (overrides DOCLING_VLM_TIMEOUT)",
+        ge=1,
+    )
 
 
 @router.get("/{kb_id}/settings", summary="Get KB query settings")

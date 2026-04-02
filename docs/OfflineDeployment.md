@@ -220,6 +220,40 @@ python -c "import docling; print('✓ Docling available')"
 python -c "import redis; print('✓ Redis available')"
 ```
 
+## Docling VLM in Offline Environments
+
+When `DOCLING_VLM_ENABLED=true`, the engine determines whether an external service is needed:
+
+| Engine | Offline-capable | Notes |
+|--------|-----------------|-------|
+| `local` | ✅ (after model download) | Downloads model weights on first run — **pre-download required for true offline use** |
+| `ollama` | ✅ (with local Ollama) | Pull model while online: `ollama pull ibm/granite-docling:258m` |
+| `lmstudio` | ✅ (with local LM Studio) | Load model in LM Studio before going offline |
+| `openai` / `api` | ❌ | Requires internet access |
+
+### Pre-downloading the recommended VLM model (Ollama)
+
+```bash
+# While online — pull the lightweight document-OCR model
+ollama pull ibm/granite-docling:258m
+
+# Verify it is available offline
+ollama list | grep granite-docling
+```
+
+### Pre-downloading for local Transformers inference (`engine=local`)
+
+```bash
+# While online — cache the model to disk
+python -c "
+from docling.datamodel.vlm_engine_options import AutoInlineVlmEngineOptions
+from huggingface_hub import snapshot_download
+snapshot_download('ds4sd/SmolDocling-256M-Preview')
+"
+# Set HF_HUB_OFFLINE=1 in production to prevent any network calls
+export HF_HUB_OFFLINE=1
+```
+
 ## Troubleshooting
 
 ### Issue: Tiktoken fails with network error

@@ -199,6 +199,7 @@ export interface User {
   id: string
   username: string
   email: string
+  avatar_url?: string
   role: UserRole
   is_active: boolean
   created_at: string
@@ -298,6 +299,14 @@ export interface KBSettings {
   max_total_tokens?: number
   enable_rerank?: boolean
   response_type?: string
+  // Docling VLM settings (per-KB overrides; undefined means inherit global config)
+  docling_vlm_enabled?: boolean
+  docling_vlm_mode?: string
+  docling_vlm_engine?: string
+  docling_vlm_url?: string
+  docling_vlm_api_key?: string
+  docling_vlm_model?: string
+  docling_vlm_timeout?: number
 }
 
 export interface KBSettingsResponse {

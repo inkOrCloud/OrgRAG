@@ -354,6 +354,7 @@ export default function KnowledgeBasesPage() {
         }
       >
         <Form form={settingsForm} layout="vertical" initialValues={kbSettings}>
+          <Divider orientation="left" orientationMargin={0}>查询参数</Divider>
           <Form.Item name="mode" label="查询模式">
             <Select options={['local','global','hybrid','naive','mix'].map(m => ({ label: m, value: m }))} allowClear placeholder="使用系统默认" />
           </Form.Item>
@@ -369,8 +370,48 @@ export default function KnowledgeBasesPage() {
           <Form.Item name="response_type" label="响应类型">
             <Input placeholder="如：Multiple Paragraphs" />
           </Form.Item>
-          <Form.Item name="enable_rerank" label="启用 Rerank">
+          <Form.Item name="enable_rerank" label="启用 Rerank" valuePropName="checked">
             <Switch />
+          </Form.Item>
+
+          <Divider orientation="left" orientationMargin={0}>文档解析 · Docling VLM</Divider>
+          <Form.Item name="docling_vlm_enabled" label="启用 VLM 解析" valuePropName="checked"
+            tooltip="开启后使用视觉语言模型辅助解析图片和扫描件，留空则继承服务器全局配置">
+            <Switch />
+          </Form.Item>
+          <Form.Item name="docling_vlm_mode" label="解析模式"
+            tooltip="auto：自动检测扫描件；picture_description：为嵌入图片生成描述；vlm_convert：整页 VLM 转换（扫描件首选）；disabled：不使用 VLM">
+            <Select allowClear placeholder="继承全局配置" options={[
+              { label: 'auto — 自动检测', value: 'auto' },
+              { label: 'picture_description — 图片描述', value: 'picture_description' },
+              { label: 'vlm_convert — 整页转换（扫描件）', value: 'vlm_convert' },
+              { label: 'disabled — 不使用 VLM', value: 'disabled' },
+            ]} />
+          </Form.Item>
+          <Form.Item name="docling_vlm_engine" label="推理引擎"
+            tooltip="ollama：本地 Ollama；openai：OpenAI API；lmstudio：LM Studio；api：自定义端点；local：本机 Transformers">
+            <Select allowClear placeholder="继承全局配置" options={[
+              { label: 'ollama', value: 'ollama' },
+              { label: 'openai', value: 'openai' },
+              { label: 'lmstudio', value: 'lmstudio' },
+              { label: 'api — 自定义端点', value: 'api' },
+              { label: 'local — 本机推理', value: 'local' },
+            ]} />
+          </Form.Item>
+          <Form.Item name="docling_vlm_url" label="API 端点 URL"
+            tooltip="自定义 VLM 端点地址，engine=api 时必填。例：http://localhost:11434/v1/chat/completions">
+            <Input placeholder="继承全局配置，如 http://localhost:11434/v1/chat/completions" />
+          </Form.Item>
+          <Form.Item name="docling_vlm_api_key" label="API Key"
+            tooltip="Bearer 鉴权密钥，Ollama/LM Studio 通常留空">
+            <Input.Password placeholder="继承全局配置" autoComplete="new-password" />
+          </Form.Item>
+          <Form.Item name="docling_vlm_model" label="模型名称"
+            tooltip="覆盖 preset 默认模型，如 ibm/granite-docling:258m">
+            <Input placeholder="继承全局配置（使用 preset 默认）" />
+          </Form.Item>
+          <Form.Item name="docling_vlm_timeout" label="超时（秒）">
+            <InputNumber min={10} max={600} style={{ width: '100%' }} placeholder="继承全局配置（默认 120）" />
           </Form.Item>
         </Form>
       </Drawer>

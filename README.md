@@ -590,6 +590,44 @@ Key environment variables. See `env.example` for the full list.
 | `MAX_PARALLEL_INSERT` | `2` | Files processed in parallel |
 | `ENABLE_LLM_CACHE_FOR_EXTRACT` | `true` | Cache extraction LLM calls |
 | `SUMMARY_LANGUAGE` | `English` | Entity summary language |
+| `DOCUMENT_LOADING_ENGINE` | `PYPDF` | PDF/Office parser: `PYPDF` (text-only) or `DOCLING` (layout-aware, supports OCR) |
+| `PDF_DECRYPT_PASSWORD` | *(none)* | Password for encrypted PDF files |
+
+### Docling VLM (Visual Language Model for Document Parsing)
+
+Requires `DOCUMENT_LOADING_ENGINE=DOCLING`. Enables VLM-assisted parsing of embedded images and scanned documents.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DOCLING_VLM_ENABLED` | `false` | Master switch for VLM document parsing |
+| `DOCLING_VLM_MODE` | `auto` | Processing mode (see below) |
+| `DOCLING_VLM_ENGINE` | `ollama` | Inference engine (see below) |
+| `DOCLING_VLM_URL` | *(engine default)* | Custom API endpoint URL; required when engine is `api` |
+| `DOCLING_VLM_API_KEY` | *(none)* | Bearer key for the VLM API endpoint |
+| `DOCLING_VLM_MODEL` | *(preset default)* | Model name override |
+| `DOCLING_VLM_TIMEOUT` | `120` | Per-request VLM API timeout (seconds) |
+| `DOCLING_VLM_CONCURRENCY` | `1` | Concurrent VLM API requests |
+
+**`DOCLING_VLM_MODE` values:**
+
+| Value | Description |
+|-------|-------------|
+| `auto` | Probe with pypdf; fall back to `vlm_convert` when no text layer is detected (recommended) |
+| `picture_description` | Standard Docling pipeline + VLM captions for each embedded image |
+| `vlm_convert` | Full-page VLM conversion — best for scanned / image-heavy PDFs |
+| `disabled` | Standard Docling without any VLM |
+
+**`DOCLING_VLM_ENGINE` values:**
+
+| Value | Description |
+|-------|-------------|
+| `ollama` | Ollama local server (`http://localhost:11434`). Recommended: `ibm/granite-docling:258m` |
+| `openai` | OpenAI API (`https://api.openai.com`) |
+| `lmstudio` | LM Studio (`http://localhost:1234`) |
+| `api` | Generic OpenAI-compatible endpoint; set `DOCLING_VLM_URL` explicitly |
+| `local` | Local Transformers / MLX inference — **not fork-safe on macOS with Gunicorn** |
+
+Each KB can override any of these settings individually through the Knowledge Base settings UI or the `PUT /kbs/{kb_id}/settings` API. Per-KB values take precedence over the global environment config.
 
 ---
 

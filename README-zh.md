@@ -583,6 +583,44 @@ docker compose up
 | `MAX_PARALLEL_INSERT` | `2` | 并行处理文件数（建议 2–10） |
 | `ENABLE_LLM_CACHE_FOR_EXTRACT` | `true` | 缓存实体提取 LLM 调用 |
 | `SUMMARY_LANGUAGE` | `English` | 实体摘要语言 |
+| `DOCUMENT_LOADING_ENGINE` | `PYPDF` | PDF/Office 解析引擎：`PYPDF`（纯文字）或 `DOCLING`（版面感知，支持 OCR） |
+| `PDF_DECRYPT_PASSWORD` | *(无)* | 加密 PDF 文件的解密密码 |
+
+### Docling VLM（文档解析视觉语言模型）
+
+需要先设置 `DOCUMENT_LOADING_ENGINE=DOCLING`。开启后，VLM 可辅助解析文档内嵌图片及扫描件。
+
+| 变量 | 默认值 | 说明 |
+|------|--------|------|
+| `DOCLING_VLM_ENABLED` | `false` | VLM 文档解析总开关 |
+| `DOCLING_VLM_MODE` | `auto` | 解析模式（见下表） |
+| `DOCLING_VLM_ENGINE` | `ollama` | 推理引擎（见下表） |
+| `DOCLING_VLM_URL` | *(引擎默认值)* | 自定义 API 端点；engine=`api` 时必填 |
+| `DOCLING_VLM_API_KEY` | *(无)* | VLM API 端点的 Bearer 鉴权密钥 |
+| `DOCLING_VLM_MODEL` | *(preset 默认)* | 模型名称覆盖 |
+| `DOCLING_VLM_TIMEOUT` | `120` | 单次 VLM API 超时（秒） |
+| `DOCLING_VLM_CONCURRENCY` | `1` | 并发 VLM API 请求数 |
+
+**`DOCLING_VLM_MODE` 取值：**
+
+| 值 | 说明 |
+|----|------|
+| `auto` | 先用 pypdf 探测文字层，无文字则自动切换为 `vlm_convert`（**推荐**） |
+| `picture_description` | 标准 Docling 管道 + 对每张嵌入图片调用 VLM 生成描述 |
+| `vlm_convert` | 整页 VLM 转换，最适合扫描件和图片型 PDF |
+| `disabled` | 标准 Docling，不使用 VLM |
+
+**`DOCLING_VLM_ENGINE` 取值：**
+
+| 值 | 说明 |
+|----|------|
+| `ollama` | 本地 Ollama 服务（`http://localhost:11434`），推荐模型：`ibm/granite-docling:258m` |
+| `openai` | OpenAI API（`https://api.openai.com`） |
+| `lmstudio` | LM Studio（`http://localhost:1234`） |
+| `api` | 任意 OpenAI 兼容端点，需同时设置 `DOCLING_VLM_URL` |
+| `local` | 本机 Transformers / MLX 推理，**macOS + Gunicorn 不兼容** |
+
+以上所有配置均可在知识库设置页面或 `PUT /kbs/{kb_id}/settings` 接口中按知识库单独覆盖，KB 级设置优先于全局环境变量。
 
 ---
 

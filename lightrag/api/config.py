@@ -457,6 +457,39 @@ def parse_args() -> argparse.Namespace:
         "MAX_UPLOAD_SIZE", 104857600, int, special_none=True
     )
 
+    # Docling VLM configuration
+    # Whether to enable VLM-assisted document parsing (picture description / VLM convert)
+    args.docling_vlm_enabled = get_env_value("DOCLING_VLM_ENABLED", False, bool)
+    # Processing mode: "auto" | "picture_description" | "vlm_convert" | "disabled"
+    #   auto               - use pypdf to probe; fall back to vlm_convert if text is empty (scanned)
+    #   picture_description - standard Docling pipeline + VLM captions for embedded images
+    #   vlm_convert        - full-page VLM conversion (best for scanned docs)
+    #   disabled           - standard Docling without any VLM (existing behaviour)
+    args.docling_vlm_mode = get_env_value("DOCLING_VLM_MODE", "auto")
+    # Inference engine: "local" | "ollama" | "openai" | "lmstudio" | "api"
+    #   local     - AUTO_INLINE (Transformers/MLX, runs on this host; not fork-safe on macOS)
+    #   ollama    - Ollama OpenAI-compatible API (default URL: http://localhost:11434)
+    #   openai    - OpenAI API (https://api.openai.com)
+    #   lmstudio  - LM Studio (default URL: http://localhost:1234)
+    #   api       - Generic OpenAI-compatible endpoint; requires DOCLING_VLM_URL
+    args.docling_vlm_engine = get_env_value("DOCLING_VLM_ENGINE", "ollama")
+    # Custom endpoint URL (overrides the engine default; required when engine="api")
+    args.docling_vlm_url = get_env_value("DOCLING_VLM_URL", None)
+    # API key sent as Authorization: Bearer <key> (optional for Ollama/LM Studio)
+    args.docling_vlm_api_key = get_env_value("DOCLING_VLM_API_KEY", None)
+    # Model name override; when None the preset's built-in default is used
+    args.docling_vlm_model = get_env_value("DOCLING_VLM_MODEL", None)
+    # Docling VlmConvertOptions preset for vlm_convert mode.
+    # Choose based on your model's output format:
+    #   doctags  presets: smoldocling, granite_docling  (SmolDocling/Granite only)
+    #   markdown presets: pixtral, qwen, granite_vision, phi4, glm_ocr, dolphin
+    # Use "pixtral" (or any markdown preset) for generic OpenAI-compatible VLMs.
+    args.docling_vlm_preset = get_env_value("DOCLING_VLM_PRESET", "pixtral")
+    # Per-request timeout in seconds for VLM API calls
+    args.docling_vlm_timeout = get_env_value("DOCLING_VLM_TIMEOUT", 120, int)
+    # Number of concurrent VLM API calls (increase with caution for rate-limited services)
+    args.docling_vlm_concurrency = get_env_value("DOCLING_VLM_CONCURRENCY", 1, int)
+
     ollama_server_infos.LIGHTRAG_NAME = args.simulated_model_name
     ollama_server_infos.LIGHTRAG_TAG = args.simulated_model_tag
 

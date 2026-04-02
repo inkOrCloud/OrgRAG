@@ -47,6 +47,7 @@ import {
   uploadDocuments,
   insertText,
   deleteDocument,
+  deleteDocuments,
   clearCache,
   scanDocuments,
   reprocessFailed,
@@ -116,6 +117,9 @@ export default function DocumentsPage() {
   const [textOpen, setTextOpen] = useState(false)
   const [textContent, setTextContent] = useState('')
   const [textInserting, setTextInserting] = useState(false)
+
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([])
+  const [batchDeleting, setBatchDeleting] = useState(false)
 
   const [pipelineOpen, setPipelineOpen] = useState(false)
   const [pipelineStatus, setPipelineStatus] = useState<{
@@ -273,6 +277,21 @@ export default function DocumentsPage() {
       fetchDocs()
     } catch (err: unknown) {
       message.error(extractErrorDetail(err, '删除文档失败'))
+    }
+  }
+
+  const handleBatchDelete = async () => {
+    if (!selectedRowKeys.length) return
+    setBatchDeleting(true)
+    try {
+      await deleteDocuments(selectedRowKeys as string[])
+      message.success(`已提交删除 ${selectedRowKeys.length} 篇文档，正在后台处理`)
+      setSelectedRowKeys([])
+      fetchDocs()
+    } catch (err: unknown) {
+      message.error(extractErrorDetail(err, '批量删除失败'))
+    } finally {
+      setBatchDeleting(false)
     }
   }
 
@@ -465,7 +484,7 @@ export default function DocumentsPage() {
           <Text type="secondary">按状态筛选：</Text>
           <Select
             value={statusFilter}
-            onChange={(v) => setStatusFilter(v)}
+            onChange={(v) => { setStatusFilter(v); setSelectedRowKeys([]) }}
             allowClear
             placeholder="全部状态"
             style={{ width: 160 }}
@@ -490,11 +509,34 @@ export default function DocumentsPage() {
 
       {/* 文档表格 */}
       <Card styles={{ body: { padding: '0 16px' } }} style={{ borderRadius: 12 }}>
+        {canWrite && selectedRowKeys.length > 0 && (
+          <div style={{ padding: '12px 0', display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid #f0f0f0', marginBottom: 4 }}>
+            <Text type="secondary">已选 <Text strong>{selectedRowKeys.length}</Text> 篇文档</Text>
+            <Popconfirm
+              title={`确认批量删除`}
+              description={`将删除选中的 ${selectedRowKeys.length} 篇文档，此操作不可撤销。`}
+              onConfirm={handleBatchDelete}
+              okText="确认删除"
+              cancelText="取消"
+              okButtonProps={{ danger: true }}
+            >
+              <Button danger icon={<DeleteOutlined />} loading={batchDeleting} size="small">
+                批量删除
+              </Button>
+            </Popconfirm>
+            <Button size="small" type="text" onClick={() => setSelectedRowKeys([])}>取消选择</Button>
+          </div>
+        )}
         <Table
           columns={columns}
           dataSource={docs}
           rowKey="id"
           loading={loading}
+          rowSelection={canWrite ? {
+            selectedRowKeys,
+            onChange: setSelectedRowKeys,
+            preserveSelectedRowKeys: true,
+          } : undefined}
           pagination={{
             current: pagination.current,
             pageSize: pagination.pageSize,

@@ -2,23 +2,45 @@
 User management routes for LightRAG API.
 
 Endpoints:
-  GET    /users          - list all users (admin)
-  POST   /users          - create user (admin)
-  GET    /users/me       - current user info (any authenticated user)
-  PUT    /users/me/password - change own password (any authenticated user)
-  GET    /users/{id}     - get user detail (admin)
-  PUT    /users/{id}     - update user (admin)
-  DELETE /users/{id}     - delete user (admin)
+  GET    /users              - list all users (admin)
+  POST   /users              - create user (admin)
+  GET    /users/me           - current user info (any authenticated user)
+  PUT    /users/me/password  - change own password (any authenticated user)
+  POST   /users/me/avatar    - upload avatar (any authenticated user)
+  DELETE /users/me/avatar    - remove avatar (any authenticated user)
+  GET    /users/{id}         - get user detail (admin)
+  PUT    /users/{id}         - update user (admin)
+  DELETE /users/{id}         - delete user (admin)
 """
 
+import os
+import uuid as _uuid
+from pathlib import Path
 from typing import Optional
-from fastapi import APIRouter, HTTPException, status, Depends, Security
+from fastapi import APIRouter, HTTPException, status, Depends, Security, UploadFile, File
 from pydantic import BaseModel, field_validator
 from sqlite3 import IntegrityError
 
 from lightrag.api.user_db import get_user_db
 from lightrag.api.auth import get_current_user, require_admin
+from lightrag.api.config import global_args
 from lightrag.utils import logger
+
+# Allowed MIME types and their canonical extensions
+_ALLOWED_MIME: dict[str, str] = {
+    "image/jpeg": ".jpg",
+    "image/png": ".png",
+    "image/gif": ".gif",
+    "image/webp": ".webp",
+}
+_MAX_AVATAR_BYTES = 2 * 1024 * 1024  # 2 MB
+
+
+def _avatars_dir() -> Path:
+    """Return (and create) the avatars storage directory."""
+    d = Path(global_args.working_dir) / "avatars"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
 
 router = APIRouter(prefix="/users", tags=["User Management"])
 
@@ -144,6 +166,70 @@ async def change_own_password(
         raise HTTPException(status_code=400, detail="New password must be at least 6 characters")
     await db.update_user(user.id, password=body.new_password)
     return {"message": "Password updated successfully"}
+
+
+@router.post("/me/avatar", summary="Upload or replace avatar for the current user")
+async def upload_my_avatar(
+    file: UploadFile = File(...),
+    current_user: dict = Security(get_current_user),
+):
+    # Validate content-type
+    content_type = file.content_type or ""
+    if content_type not in _ALLOWED_MIME:
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail=f"Unsupported file type '{content_type}'. Allowed: jpeg, png, gif, webp.",
+        )
+
+    # Read and validate size
+    data = await file.read()
+    if len(data) > _MAX_AVATAR_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="Avatar file must not exceed 2 MB.",
+        )
+
+    db = get_user_db()
+    user = await db.get_user_by_username(current_user["username"])
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    ext = _ALLOWED_MIME[content_type]
+    filename = f"{user.id}{ext}"
+    avatars = _avatars_dir()
+
+    # Remove any previously stored avatar files for this user
+    for old in avatars.glob(f"{user.id}.*"):
+        try:
+            old.unlink()
+        except OSError:
+            pass
+
+    dest = avatars / filename
+    dest.write_bytes(data)
+
+    avatar_url = f"/avatars/{filename}"
+    await db.update_user(user.id, avatar_url=avatar_url)
+    logger.info(f"Avatar updated for user '{user.username}': {avatar_url}")
+    return {"avatar_url": avatar_url, "message": "Avatar uploaded successfully"}
+
+
+@router.delete("/me/avatar", summary="Remove avatar for the current user")
+async def delete_my_avatar(current_user: dict = Security(get_current_user)):
+    db = get_user_db()
+    user = await db.get_user_by_username(current_user["username"])
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    avatars = _avatars_dir()
+    for old in avatars.glob(f"{user.id}.*"):
+        try:
+            old.unlink()
+        except OSError:
+            pass
+
+    await db.update_user(user.id, avatar_url="")
+    return {"message": "Avatar removed successfully"}
 
 
 @router.get("/{user_id}", summary="Get user by ID (admin)")

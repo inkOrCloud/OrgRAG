@@ -64,7 +64,7 @@ export default function AppLayout() {
   const { message } = App.useApp()
   const navigate = useNavigate()
   const location = useLocation()
-  const { logout, username, webuiTitle, coreVersion, apiVersion, role, isAdmin } = useAuthStore()
+  const { logout, username, webuiTitle, coreVersion, apiVersion, role, isAdmin, avatarUrl } = useAuthStore()
   const { isDark, toggleDark, sidebarCollapsed, setSidebarCollapsed, apiBaseUrl, setApiBaseUrl } = useSettingsStore()
 
   const [health, setHealth] = useState<HealthStatus | null>(null)
@@ -284,14 +284,15 @@ export default function AppLayout() {
               placement="bottomRight"
             >
               <Avatar
+                size={32}
+                src={avatarUrl ? `${apiBaseUrl.replace(/\/$/, '')}${avatarUrl}` : undefined}
+                icon={!avatarUrl ? <UserOutlined /> : undefined}
                 style={{
-                  background: '#1677ff',
+                  background: avatarUrl ? undefined : '#1677ff',
                   cursor: 'pointer',
                 }}
-                size={32}
-                icon={<UserOutlined />}
               >
-                {username ? username[0].toUpperCase() : undefined}
+                {!avatarUrl && username ? username[0].toUpperCase() : undefined}
               </Avatar>
             </Dropdown>
           </Space>

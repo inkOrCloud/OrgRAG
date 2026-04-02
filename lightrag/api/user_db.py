@@ -28,12 +28,14 @@ class User:
     updated_at: str
     hashed_password: str = field(repr=False)
     email: str = ""
+    avatar_url: str = ""
 
     def to_dict(self, include_sensitive: bool = False) -> dict:
         d = {
             "id": self.id,
             "username": self.username,
             "email": self.email,
+            "avatar_url": self.avatar_url,
             "role": self.role,
             "is_active": self.is_active,
             "created_at": self.created_at,
@@ -72,9 +74,15 @@ class UserDB:
                 )
             """)
             conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username)")
+            # Migration: add avatar_url column for existing databases
+            try:
+                conn.execute("ALTER TABLE users ADD COLUMN avatar_url TEXT NOT NULL DEFAULT ''")
+            except Exception:
+                pass  # Column already exists
             conn.commit()
 
     def _row_to_user(self, row: sqlite3.Row) -> User:
+        keys = row.keys()
         return User(
             id=row["id"],
             username=row["username"],
@@ -84,6 +92,7 @@ class UserDB:
             is_active=bool(row["is_active"]),
             created_at=row["created_at"],
             updated_at=row["updated_at"],
+            avatar_url=row["avatar_url"] if "avatar_url" in keys else "",
         )
 
     async def initialize(self):
@@ -178,7 +187,7 @@ class UserDB:
         fields = {}
         if "password" in kwargs:
             fields["hashed_password"] = hash_password(kwargs.pop("password"))
-        for k in ("username", "email", "role", "is_active"):
+        for k in ("username", "email", "role", "is_active", "avatar_url"):
             if k in kwargs:
                 fields[k] = kwargs[k]
         if not fields:
