@@ -13,6 +13,7 @@
     "@types/marked": "^6.0.0",
     "antd": "^5.24.6",
     "axios": "^1.7.9",
+    "github-markdown-css": "^5.9.0",
     "graphology": "^0.26.0",
     "graphology-layout": "^0.6.1",
     "graphology-layout-forceatlas2": "^0.10.1",
