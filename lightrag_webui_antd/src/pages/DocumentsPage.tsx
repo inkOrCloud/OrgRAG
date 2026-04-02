@@ -762,11 +762,57 @@ export default function DocumentsPage() {
             <Spin size="large" tip="加载中..." />
           </div>
         ) : docContent ? (
-          <div
-            className="markdown-body"
-            style={{ lineHeight: 1.8, fontSize: 14 }}
-            dangerouslySetInnerHTML={{ __html: marked(docContent.content) as string }}
-          />
+          <>
+            <style>{`
+              .markdown-body { color: inherit; }
+              .markdown-body h1,.markdown-body h2,.markdown-body h3,
+              .markdown-body h4,.markdown-body h5,.markdown-body h6 {
+                margin: 1em 0 .5em; font-weight: 600; line-height: 1.4;
+              }
+              .markdown-body h1 { font-size: 1.75em; border-bottom: 1px solid #eee; padding-bottom: .3em; }
+              .markdown-body h2 { font-size: 1.4em; border-bottom: 1px solid #eee; padding-bottom: .3em; }
+              .markdown-body h3 { font-size: 1.15em; }
+              .markdown-body p { margin: .6em 0; }
+              .markdown-body ul,.markdown-body ol { padding-left: 1.8em; margin: .5em 0; }
+              .markdown-body li { margin: .25em 0; }
+              .markdown-body code {
+                background: rgba(0,0,0,.06); border-radius: 3px;
+                padding: .1em .35em; font-size: .88em; font-family: monospace;
+              }
+              .markdown-body pre {
+                background: rgba(0,0,0,.06); border-radius: 6px;
+                padding: 1em; overflow-x: auto; margin: .8em 0;
+              }
+              .markdown-body pre code { background: none; padding: 0; }
+              .markdown-body blockquote {
+                border-left: 4px solid #d0d7de; margin: .8em 0;
+                padding: .2em 1em; color: #57606a;
+              }
+              .markdown-body table {
+                border-collapse: collapse; width: 100%;
+                margin: 1em 0; font-size: 13px;
+              }
+              .markdown-body table th,
+              .markdown-body table td {
+                border: 1px solid #d0d7de;
+                padding: 6px 13px; text-align: left;
+              }
+              .markdown-body table thead th {
+                background: #f6f8fa; font-weight: 600;
+              }
+              .markdown-body table tbody tr:nth-child(even) {
+                background: #f6f8fa;
+              }
+              .markdown-body hr {
+                border: none; border-top: 1px solid #eee; margin: 1em 0;
+              }
+            `}</style>
+            <div
+              className="markdown-body"
+              style={{ lineHeight: 1.8, fontSize: 14 }}
+              dangerouslySetInnerHTML={{ __html: marked(docContent.content) as string }}
+            />
+          </>
         ) : null}
       </Drawer>
     </div>
