@@ -22,6 +22,7 @@ import {
   Drawer,
   List,
   Alert,
+  Spin,
 } from 'antd'
 import type { UploadFile } from 'antd/es/upload/interface'
 import type { TablePaginationConfig } from 'antd/es/table'
@@ -40,6 +41,7 @@ import {
   CheckCircleOutlined,
   ClockCircleOutlined,
   LoadingOutlined,
+  EyeOutlined,
 } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import {
@@ -54,8 +56,12 @@ import {
   cancelPipeline,
   getPipelineStatus,
   extractErrorDetail,
+  getDocumentContent,
 } from '@/api/client'
-import type { DocStatusResponse, DocStatus } from '@/types'
+import type { DocStatusResponse, DocStatus, DocContentResponse } from '@/types'
+import { marked } from 'marked'
+
+marked.setOptions({ breaks: true, gfm: true })
 import { useKBStore } from '@/stores/kb'
 import { useAuthStore } from '@/stores/auth'
 
@@ -120,6 +126,25 @@ export default function DocumentsPage() {
 
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([])
   const [batchDeleting, setBatchDeleting] = useState(false)
+
+  const [contentDrawerOpen, setContentDrawerOpen] = useState(false)
+  const [contentLoading, setContentLoading] = useState(false)
+  const [docContent, setDocContent] = useState<DocContentResponse | null>(null)
+
+  const handleViewContent = useCallback(async (doc: DocStatusResponse) => {
+    setDocContent(null)
+    setContentDrawerOpen(true)
+    setContentLoading(true)
+    try {
+      const result = await getDocumentContent(doc.id)
+      setDocContent(result)
+    } catch {
+      message.error('获取文档内容失败')
+      setContentDrawerOpen(false)
+    } finally {
+      setContentLoading(false)
+    }
+  }, [message])
 
   const [pipelineOpen, setPipelineOpen] = useState(false)
   const [pipelineStatus, setPipelineStatus] = useState<{
@@ -250,24 +275,37 @@ export default function DocumentsPage() {
           </Tooltip>
         ) : null,
     },
-    ...(canWrite ? [{
+    {
       title: '操作',
       key: 'actions',
-      width: 80,
+      width: 110,
       align: 'center' as const,
       render: (_: unknown, record: DocStatusResponse) => (
-        <Popconfirm
-          title="确认删除此文档？"
-          description="删除后将移除该文档及其关联的图谱数据，操作不可撤销。"
-          onConfirm={() => handleDelete(record.id)}
-          okText="确认删除"
-          cancelText="取消"
-          okButtonProps={{ danger: true }}
-        >
-          <Button danger type="text" icon={<DeleteOutlined />} size="small" />
-        </Popconfirm>
+        <Space size={4}>
+          <Tooltip title="查看内容">
+            <Button
+              type="text"
+              icon={<EyeOutlined />}
+              size="small"
+              disabled={record.status !== 'processed'}
+              onClick={() => handleViewContent(record)}
+            />
+          </Tooltip>
+          {canWrite && (
+            <Popconfirm
+              title="确认删除此文档？"
+              description="删除后将移除该文档及其关联的图谱数据，操作不可撤销。"
+              onConfirm={() => handleDelete(record.id)}
+              okText="确认删除"
+              cancelText="取消"
+              okButtonProps={{ danger: true }}
+            >
+              <Button danger type="text" icon={<DeleteOutlined />} size="small" />
+            </Popconfirm>
+          )}
+        </Space>
       ),
-    }] : []),
+    },
   ]
 
   const handleDelete = async (id: string) => {
@@ -697,6 +735,39 @@ export default function DocumentsPage() {
         ) : (
           <Text type="secondary">加载中...</Text>
         )}
+      </Drawer>
+
+      {/* 文档内容 Drawer */}
+      <Drawer
+        title={
+          <Space>
+            <FileTextOutlined />
+            <span style={{ maxWidth: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'inline-block' }}>
+              {docContent?.file_path ?? '文档内容'}
+            </span>
+            {docContent && (
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                ({(docContent.content_length / 1000).toFixed(1)} K 字符)
+              </Text>
+            )}
+          </Space>
+        }
+        open={contentDrawerOpen}
+        onClose={() => setContentDrawerOpen(false)}
+        width="60%"
+        styles={{ body: { padding: '16px 24px' } }}
+      >
+        {contentLoading ? (
+          <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 80 }}>
+            <Spin size="large" tip="加载中..." />
+          </div>
+        ) : docContent ? (
+          <div
+            className="markdown-body"
+            style={{ lineHeight: 1.8, fontSize: 14 }}
+            dangerouslySetInnerHTML={{ __html: marked(docContent.content) as string }}
+          />
+        ) : null}
       </Drawer>
     </div>
   )

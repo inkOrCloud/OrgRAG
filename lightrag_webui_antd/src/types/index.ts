@@ -20,6 +20,13 @@ export interface DocStatusResponse {
   file_path: string
 }
 
+export interface DocContentResponse {
+  id: string
+  file_path: string
+  content: string
+  content_length: number
+}
+
 export interface PaginationInfo {
   page: number
   page_size: number

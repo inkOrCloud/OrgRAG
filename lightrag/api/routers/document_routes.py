@@ -16,6 +16,7 @@ from fastapi import (
     BackgroundTasks,
     Depends,
     File,
+    Header,
     HTTPException,
     UploadFile,
 )
@@ -455,6 +456,13 @@ class DeleteRelationRequest(BaseModel):
         if not entity_name or not entity_name.strip():
             raise ValueError("Entity name cannot be empty")
         return entity_name.strip()
+
+
+class DocContentResponse(BaseModel):
+    id: str = Field(description="Document identifier")
+    file_path: str = Field(description="Original file path")
+    content: str = Field(description="Full markdown content of the document")
+    content_length: int = Field(description="Length of content in characters")
 
 
 class DocStatusResponse(BaseModel):
@@ -3551,6 +3559,32 @@ def create_document_routes(
         except Exception as e:
             logger.error(f"Error requesting pipeline cancellation: {str(e)}")
             logger.error(traceback.format_exc())
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @router.get("/{doc_id}/content", response_model=DocContentResponse)
+    async def get_document_content(
+        doc_id: str,
+        _: None = Depends(combined_auth),
+    ):
+        """Return the full markdown content of a document stored in kv_store_full_docs."""
+        try:
+            doc = await rag.full_docs.get_by_id(doc_id)
+            if doc is None:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Document '{doc_id}' not found",
+                )
+            content = doc.get("content", "") if isinstance(doc, dict) else str(doc)
+            return DocContentResponse(
+                id=doc_id,
+                file_path=doc.get("file_path", "") if isinstance(doc, dict) else "",
+                content=content,
+                content_length=len(content),
+            )
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error fetching document content for '{doc_id}': {e}")
             raise HTTPException(status_code=500, detail=str(e))
 
     return router

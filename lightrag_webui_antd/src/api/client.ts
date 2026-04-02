@@ -43,6 +43,7 @@ import type {
   SetupStatusResponse,
   SetupRequest,
   SetupResponse,
+  DocContentResponse,
 } from '@/types'
 
 // ── Axios instance ──────────────────────────────────────────────
@@ -254,6 +255,11 @@ export async function deleteDocument(docId: string): Promise<DocActionResponse> 
     `/documents/delete_document`,
     { data: { doc_ids: [docId], delete_file: false, delete_llm_cache: false } }
   )
+  return data
+}
+
+export async function getDocumentContent(docId: string): Promise<DocContentResponse> {
+  const { data } = await axiosInstance.get<DocContentResponse>(`/documents/${docId}/content`)
   return data
 }
 
