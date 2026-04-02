@@ -62,7 +62,7 @@ import type { DocStatusResponse, DocStatus, DocContentResponse } from '@/types'
 import { marked } from 'marked'
 import 'github-markdown-css/github-markdown.css'
 
-marked.setOptions({ breaks: true, gfm: true })
+marked.use({ breaks: true, gfm: true })
 import { useKBStore } from '@/stores/kb'
 import { useAuthStore } from '@/stores/auth'
 
@@ -767,7 +767,7 @@ export default function DocumentsPage() {
             className="markdown-body"
             data-color-mode="light"
             style={{ lineHeight: 1.8, fontSize: 14, boxSizing: 'border-box' }}
-            dangerouslySetInnerHTML={{ __html: marked(docContent.content) as string }}
+            dangerouslySetInnerHTML={{ __html: marked.parse(docContent.content) as string }}
           />
         ) : null}
       </Drawer>
