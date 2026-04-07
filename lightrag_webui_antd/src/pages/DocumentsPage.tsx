@@ -71,6 +71,7 @@ const { Dragger } = Upload
 const { TextArea } = Input
 
 const STATUS_COLOR: Record<DocStatus, string> = {
+  extracting: 'purple',
   pending: 'blue',
   processing: 'orange',
   preprocessed: 'cyan',
@@ -79,6 +80,7 @@ const STATUS_COLOR: Record<DocStatus, string> = {
 }
 
 const STATUS_LABEL: Record<DocStatus, string> = {
+  extracting: '提取中',
   pending: '等待中',
   processing: '处理中',
   preprocessed: '预处理完成',
@@ -87,6 +89,7 @@ const STATUS_LABEL: Record<DocStatus, string> = {
 }
 
 const STATUS_ICON: Record<DocStatus, React.ReactNode> = {
+  extracting: <LoadingOutlined spin />,
   pending: <ClockCircleOutlined />,
   processing: <LoadingOutlined spin />,
   preprocessed: <ClockCircleOutlined />,
@@ -219,14 +222,12 @@ export default function DocumentsPage() {
       key: 'file_path',
       ellipsis: true,
       render: (path: string) => (
-        <Tooltip title={path}>
-          <Space>
-            <FileTextOutlined />
-            <Text style={{ maxWidth: 280 }} ellipsis={{ tooltip: path }}>
-              {truncate(path, 60)}
-            </Text>
-          </Space>
-        </Tooltip>
+        <Space>
+          <FileTextOutlined />
+          <Text style={{ maxWidth: 280 }} ellipsis={{ tooltip: path }}>
+            {truncate(path, 60)}
+          </Text>
+        </Space>
       ),
     },
     {
@@ -441,6 +442,7 @@ export default function DocumentsPage() {
   const processed = statusCounts['processed'] ?? 0
   const processing = (statusCounts['processing'] ?? 0) + (statusCounts['preprocessed'] ?? 0)
   const pending = statusCounts['pending'] ?? 0
+  const extracting = statusCounts['extracting'] ?? 0
   const failed = statusCounts['failed'] ?? 0
 
   return (
@@ -485,6 +487,7 @@ export default function DocumentsPage() {
           { label: '全部', value: total, color: '#1677ff', icon: <FileTextOutlined /> },
           { label: '已完成', value: processed, color: '#52c41a', icon: <CheckCircleOutlined /> },
           { label: '处理中', value: processing, color: '#fa8c16', icon: <LoadingOutlined spin={processing > 0} /> },
+          { label: '提取中', value: extracting, color: '#722ed1', icon: <LoadingOutlined spin={extracting > 0} /> },
           { label: '等待中', value: pending, color: '#1677ff', icon: <ClockCircleOutlined /> },
           { label: '失败', value: failed, color: '#ff4d4f', icon: <CloseCircleOutlined /> },
         ].map((stat) => (
@@ -528,6 +531,7 @@ export default function DocumentsPage() {
             placeholder="全部状态"
             style={{ width: 160 }}
             options={[
+              { value: 'extracting', label: '提取中' },
               { value: 'pending', label: '等待中' },
               { value: 'processing', label: '处理中' },
               { value: 'preprocessed', label: '预处理完成' },

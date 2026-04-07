@@ -705,6 +705,7 @@ class BaseGraphStorage(StorageNameSpace, ABC):
 class DocStatus(str, Enum):
     """Document processing status"""
 
+    EXTRACTING = "extracting"
     PENDING = "pending"
     PROCESSING = "processing"
     PREPROCESSED = "preprocessed"

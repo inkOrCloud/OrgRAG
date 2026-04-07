@@ -387,6 +387,49 @@ def parse_args() -> argparse.Namespace:
     # PDF decryption password
     args.pdf_decrypt_password = get_env_value("PDF_DECRYPT_PASSWORD", None)
 
+    # ── MinerU WebAPI Configuration ──────────────────────────────────────────
+    # Whether to enable the MinerU document parsing engine.
+    # When enabled, DOCUMENT_LOADING_ENGINE is effectively overridden to "MINERU"
+    # for file types supported by MinerU (PDF and images).
+    args.mineru_enabled = get_env_value("MINERU_ENABLED", False, bool)
+    # Base URL of the MinerU WebAPI service (no trailing slash required).
+    args.mineru_base_url = get_env_value(
+        "MINERU_BASE_URL", "http://localhost:28080"
+    )
+    # Call mode: "sync" uses POST /file_parse (one request, blocks until done);
+    #            "async" uses POST /tasks + polling (better for large files).
+    args.mineru_mode = get_env_value("MINERU_MODE", "sync")
+    # MinerU parsing backend.
+    # Options: pipeline, vlm-auto-engine, vlm-http-client,
+    #          hybrid-auto-engine (default), hybrid-http-client
+    args.mineru_backend = get_env_value("MINERU_BACKEND", "hybrid-auto-engine")
+    # PDF parse method hint: auto | txt | ocr
+    args.mineru_parse_method = get_env_value("MINERU_PARSE_METHOD", "auto")
+    # Comma-separated OCR language codes, e.g. "ch,en".
+    # MinerU API expects a repeated field; we split on comma internally.
+    _mineru_lang_raw = get_env_value("MINERU_LANG_LIST", "ch")
+    args.mineru_lang_list = (
+        [lang.strip() for lang in _mineru_lang_raw.split(",") if lang.strip()]
+        if isinstance(_mineru_lang_raw, str)
+        else ["ch"]
+    )
+    # Enable/disable formula recognition
+    args.mineru_formula_enable = get_env_value("MINERU_FORMULA_ENABLE", True, bool)
+    # Enable/disable table recognition
+    args.mineru_table_enable = get_env_value("MINERU_TABLE_ENABLE", True, bool)
+    # Sync mode: total HTTP timeout in seconds (includes upload + server processing)
+    args.mineru_timeout = get_env_value("MINERU_TIMEOUT", 300, int)
+    # Async mode: seconds between GET /tasks/{id} poll requests
+    args.mineru_async_poll_interval = get_env_value(
+        "MINERU_ASYNC_POLL_INTERVAL", 2.0, float
+    )
+    # Async mode: hard ceiling on total wait time before giving up
+    args.mineru_async_max_wait = get_env_value("MINERU_ASYNC_MAX_WAIT", 600, int)
+    # When True, fall back to the local engine (pypdf / Docling) on MinerU error
+    args.mineru_fallback_on_error = get_env_value(
+        "MINERU_FALLBACK_ON_ERROR", True, bool
+    )
+
     # Add environment variables that were previously read directly
     args.cors_origins = get_env_value("CORS_ORIGINS", "*")
     args.summary_language = get_env_value("SUMMARY_LANGUAGE", DEFAULT_SUMMARY_LANGUAGE)

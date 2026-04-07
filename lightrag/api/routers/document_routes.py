@@ -849,6 +849,15 @@ class DocumentManager:
             ".css",  # Cascading Style Sheets
             ".scss",  # Sassy CSS
             ".less",  # LESS CSS
+            # Image formats — parsed via MinerU engine (requires MINERU_ENABLED=true)
+            ".png",
+            ".jpg",
+            ".jpeg",
+            ".bmp",
+            ".tiff",
+            ".tif",
+            ".gif",
+            ".webp",
         ),
     ):
         # Store the base input directory and workspace
@@ -981,6 +990,137 @@ def _convert_with_docling(file_path: Path) -> str:
     converter = DocumentConverter()
     result = converter.convert(file_path)
     return result.document.export_to_markdown()
+
+
+def _get_effective_mineru_config(kb_settings: dict | None) -> dict:
+    """Merge global MinerU config with per-KB overrides.
+
+    KB-level settings (``mineru_*`` keys inside *kb_settings*) take precedence
+    over the global ``global_args`` values.  ``None`` KB values mean "inherit".
+
+    Returns:
+        A flat dict with all resolved MinerU configuration keys.
+    """
+    from lightrag.api.mineru_client import MinerUConfig  # local import to avoid cycles
+
+    kb = kb_settings or {}
+
+    def _kb_or_global(kb_key: str, global_attr: str, default: Any) -> Any:
+        kb_val = kb.get(kb_key)
+        if kb_val is not None:
+            return kb_val
+        return getattr(global_args, global_attr, default)
+
+    raw_lang = _kb_or_global("mineru_lang_list", "mineru_lang_list", ["ch"])
+    if isinstance(raw_lang, str):
+        lang_list = [l.strip() for l in raw_lang.split(",") if l.strip()]
+    else:
+        lang_list = list(raw_lang) if raw_lang else ["ch"]
+
+    return {
+        "enabled": _kb_or_global("mineru_enabled", "mineru_enabled", False),
+        "base_url": _kb_or_global(
+            "mineru_base_url", "mineru_base_url", "http://localhost:28080"
+        ),
+        "mode": _kb_or_global("mineru_mode", "mineru_mode", "sync"),
+        "backend": _kb_or_global(
+            "mineru_backend", "mineru_backend", "hybrid-auto-engine"
+        ),
+        "parse_method": _kb_or_global(
+            "mineru_parse_method", "mineru_parse_method", "auto"
+        ),
+        "lang_list": lang_list,
+        "formula_enable": _kb_or_global(
+            "mineru_formula_enable", "mineru_formula_enable", True
+        ),
+        "table_enable": _kb_or_global(
+            "mineru_table_enable", "mineru_table_enable", True
+        ),
+        "timeout": _kb_or_global("mineru_timeout", "mineru_timeout", 300),
+        "async_poll_interval": _kb_or_global(
+            "mineru_async_poll_interval", "mineru_async_poll_interval", 2.0
+        ),
+        "async_max_wait": _kb_or_global(
+            "mineru_async_max_wait", "mineru_async_max_wait", 600
+        ),
+        "fallback_on_error": _kb_or_global(
+            "mineru_fallback_on_error", "mineru_fallback_on_error", True
+        ),
+        # Internal reference so callers can construct MinerUConfig directly
+        "_config_cls": MinerUConfig,
+    }
+
+
+async def _extract_with_mineru(
+    file_path: Path,
+    file_bytes: bytes,
+    cfg: dict,
+) -> str:
+    """Call MinerU WebAPI and return the parsed Markdown content.
+
+    Runs a health-check before the actual parse request.  If the service is
+    unavailable and *cfg["fallback_on_error"]* is True the function returns an
+    empty string so the caller can fall back to a local engine; otherwise a
+    :class:`~lightrag.api.mineru_client.MinerUError` is re-raised.
+
+    Args:
+        file_path: Original file path (provides filename for multipart upload).
+        file_bytes: Raw binary content of the file to parse.
+        cfg: Resolved MinerU config dict from :func:`_get_effective_mineru_config`.
+
+    Returns:
+        Markdown string from MinerU, or ``""`` when fallback is enabled and
+        the service is unavailable / returns empty content.
+    """
+    from lightrag.api.mineru_client import MinerUClient, MinerUConfig, MinerUError
+
+    mineru_cfg = MinerUConfig(
+        enabled=cfg["enabled"],
+        base_url=cfg["base_url"],
+        mode=cfg["mode"],
+        backend=cfg["backend"],
+        parse_method=cfg["parse_method"],
+        lang_list=cfg["lang_list"],
+        formula_enable=cfg["formula_enable"],
+        table_enable=cfg["table_enable"],
+        timeout=cfg["timeout"],
+        async_poll_interval=cfg["async_poll_interval"],
+        async_max_wait=cfg["async_max_wait"],
+        fallback_on_error=cfg["fallback_on_error"],
+    )
+
+    try:
+        async with MinerUClient(mineru_cfg) as client:
+            healthy = await client.health_check()
+            if not healthy:
+                msg = f"[MinerU] Service unreachable at {mineru_cfg.base_url}"
+                if mineru_cfg.fallback_on_error:
+                    logger.warning("%s — falling back to local engine", msg)
+                    return ""
+                raise MinerUError(msg)
+
+            content = await client.parse(file_path, file_bytes)
+
+        if not content and mineru_cfg.fallback_on_error:
+            logger.warning(
+                "[MinerU] Empty content returned for %s — falling back to local engine",
+                file_path.name,
+            )
+            return ""
+
+        return content
+
+    except MinerUError:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        if mineru_cfg.fallback_on_error:
+            logger.warning(
+                "[MinerU] Unexpected error for %s (%s) — falling back to local engine",
+                file_path.name,
+                exc,
+            )
+            return ""
+        raise
 
 
 def _get_effective_docling_vlm_config(kb_settings: dict | None) -> dict:
@@ -1548,53 +1688,69 @@ async def pipeline_enqueue_file(
 
                 case ".pdf":
                     try:
-                        use_docling = (
-                            global_args.document_loading_engine == "DOCLING"
-                            and _is_docling_available()
-                        )
-                        if not use_docling and global_args.document_loading_engine == "DOCLING":
-                            logger.warning(
-                                f"DOCLING engine configured but not available for {file_path.name}. Falling back to pypdf."
+                        mineru_cfg = _get_effective_mineru_config(kb_settings)
+                        if mineru_cfg["enabled"]:
+                            # MinerU engine has highest priority for PDF
+                            logger.info(
+                                f"[MinerU] Processing PDF: {file_path.name}"
                             )
-
-                        if use_docling:
-                            vlm_cfg = _get_effective_docling_vlm_config(kb_settings)
-                            mode = vlm_cfg["mode"] if vlm_cfg["enabled"] else "disabled"
-
-                            if mode == "auto":
-                                # Probe with pypdf; switch to vlm_convert for scanned docs
-                                probe = await asyncio.to_thread(
-                                    _extract_pdf_pypdf, file, global_args.pdf_decrypt_password
+                            content = await _extract_with_mineru(
+                                file_path, file, mineru_cfg
+                            )
+                            # Empty content means MinerU failed and fallback is active;
+                            # degrade to Docling / pypdf below.
+                            if not content:
+                                logger.warning(
+                                    f"[MinerU] No content for {file_path.name}, "
+                                    "falling back to local engine"
                                 )
-                                if probe.strip():
-                                    content = probe
-                                    logger.debug(f"[Docling] auto mode: text layer detected, using pypdf for {file_path.name}")
-                                else:
-                                    logger.info(f"[Docling] auto mode: no text layer, using VLM Convert for {file_path.name}")
+
+                        if not content:
+                            use_docling = (
+                                global_args.document_loading_engine == "DOCLING"
+                                and _is_docling_available()
+                            )
+                            if not use_docling and global_args.document_loading_engine == "DOCLING":
+                                logger.warning(
+                                    f"DOCLING engine configured but not available for {file_path.name}. Falling back to pypdf."
+                                )
+
+                            if use_docling:
+                                vlm_cfg = _get_effective_docling_vlm_config(kb_settings)
+                                mode = vlm_cfg["mode"] if vlm_cfg["enabled"] else "disabled"
+
+                                if mode == "auto":
+                                    probe = await asyncio.to_thread(
+                                        _extract_pdf_pypdf, file, global_args.pdf_decrypt_password
+                                    )
+                                    if probe.strip():
+                                        content = probe
+                                        logger.debug(f"[Docling] auto mode: text layer detected, using pypdf for {file_path.name}")
+                                    else:
+                                        logger.info(f"[Docling] auto mode: no text layer, using VLM Convert for {file_path.name}")
+                                        content = await asyncio.to_thread(
+                                            _convert_with_docling_vlm_convert, file_path, vlm_cfg
+                                        )
+                                elif mode == "vlm_convert":
+                                    logger.info(f"[Docling] VLM Convert mode for {file_path.name}")
                                     content = await asyncio.to_thread(
                                         _convert_with_docling_vlm_convert, file_path, vlm_cfg
                                     )
-                            elif mode == "vlm_convert":
-                                logger.info(f"[Docling] VLM Convert mode for {file_path.name}")
-                                content = await asyncio.to_thread(
-                                    _convert_with_docling_vlm_convert, file_path, vlm_cfg
-                                )
-                            elif mode == "picture_description":
-                                logger.info(f"[Docling] Picture Description mode for {file_path.name}")
-                                content = await asyncio.to_thread(
-                                    _convert_with_docling_picture_description, file_path, vlm_cfg
-                                )
+                                elif mode == "picture_description":
+                                    logger.info(f"[Docling] Picture Description mode for {file_path.name}")
+                                    content = await asyncio.to_thread(
+                                        _convert_with_docling_picture_description, file_path, vlm_cfg
+                                    )
+                                else:
+                                    content = await asyncio.to_thread(
+                                        _convert_with_docling, file_path
+                                    )
                             else:
-                                # "disabled" or unknown: standard Docling without VLM
                                 content = await asyncio.to_thread(
-                                    _convert_with_docling, file_path
+                                    _extract_pdf_pypdf,
+                                    file,
+                                    global_args.pdf_decrypt_password,
                                 )
-                        else:
-                            content = await asyncio.to_thread(
-                                _extract_pdf_pypdf,
-                                file,
-                                global_args.pdf_decrypt_password,
-                            )
                     except Exception as e:
                         error_files = [
                             {
@@ -1614,24 +1770,30 @@ async def pipeline_enqueue_file(
 
                 case ".docx":
                     try:
-                        # Try DOCLING first if configured and available
-                        if (
-                            global_args.document_loading_engine == "DOCLING"
-                            and _is_docling_available()
-                        ):
-                            content = await asyncio.to_thread(
-                                _convert_with_docling, file_path
+                        mineru_cfg = _get_effective_mineru_config(kb_settings)
+                        if mineru_cfg["enabled"]:
+                            logger.info(f"[MinerU] Processing DOCX: {file_path.name}")
+                            content = await _extract_with_mineru(
+                                file_path, file, mineru_cfg
                             )
-                        else:
+                        if not content:
+                            # Try DOCLING if configured and available
                             if (
                                 global_args.document_loading_engine == "DOCLING"
-                                and not _is_docling_available()
+                                and _is_docling_available()
                             ):
-                                logger.warning(
-                                    f"DOCLING engine configured but not available for {file_path.name}. Falling back to python-docx."
+                                content = await asyncio.to_thread(
+                                    _convert_with_docling, file_path
                                 )
-                            # Use python-docx (non-blocking via to_thread)
-                            content = await asyncio.to_thread(_extract_docx, file)
+                            else:
+                                if (
+                                    global_args.document_loading_engine == "DOCLING"
+                                    and not _is_docling_available()
+                                ):
+                                    logger.warning(
+                                        f"DOCLING engine configured but not available for {file_path.name}. Falling back to python-docx."
+                                    )
+                                content = await asyncio.to_thread(_extract_docx, file)
                     except Exception as e:
                         error_files = [
                             {
@@ -1651,24 +1813,29 @@ async def pipeline_enqueue_file(
 
                 case ".pptx":
                     try:
-                        # Try DOCLING first if configured and available
-                        if (
-                            global_args.document_loading_engine == "DOCLING"
-                            and _is_docling_available()
-                        ):
-                            content = await asyncio.to_thread(
-                                _convert_with_docling, file_path
+                        mineru_cfg = _get_effective_mineru_config(kb_settings)
+                        if mineru_cfg["enabled"]:
+                            logger.info(f"[MinerU] Processing PPTX: {file_path.name}")
+                            content = await _extract_with_mineru(
+                                file_path, file, mineru_cfg
                             )
-                        else:
+                        if not content:
                             if (
                                 global_args.document_loading_engine == "DOCLING"
-                                and not _is_docling_available()
+                                and _is_docling_available()
                             ):
-                                logger.warning(
-                                    f"DOCLING engine configured but not available for {file_path.name}. Falling back to python-pptx."
+                                content = await asyncio.to_thread(
+                                    _convert_with_docling, file_path
                                 )
-                            # Use python-pptx (non-blocking via to_thread)
-                            content = await asyncio.to_thread(_extract_pptx, file)
+                            else:
+                                if (
+                                    global_args.document_loading_engine == "DOCLING"
+                                    and not _is_docling_available()
+                                ):
+                                    logger.warning(
+                                        f"DOCLING engine configured but not available for {file_path.name}. Falling back to python-pptx."
+                                    )
+                                content = await asyncio.to_thread(_extract_pptx, file)
                     except Exception as e:
                         error_files = [
                             {
@@ -1688,24 +1855,29 @@ async def pipeline_enqueue_file(
 
                 case ".xlsx":
                     try:
-                        # Try DOCLING first if configured and available
-                        if (
-                            global_args.document_loading_engine == "DOCLING"
-                            and _is_docling_available()
-                        ):
-                            content = await asyncio.to_thread(
-                                _convert_with_docling, file_path
+                        mineru_cfg = _get_effective_mineru_config(kb_settings)
+                        if mineru_cfg["enabled"]:
+                            logger.info(f"[MinerU] Processing XLSX: {file_path.name}")
+                            content = await _extract_with_mineru(
+                                file_path, file, mineru_cfg
                             )
-                        else:
+                        if not content:
                             if (
                                 global_args.document_loading_engine == "DOCLING"
-                                and not _is_docling_available()
+                                and _is_docling_available()
                             ):
-                                logger.warning(
-                                    f"DOCLING engine configured but not available for {file_path.name}. Falling back to openpyxl."
+                                content = await asyncio.to_thread(
+                                    _convert_with_docling, file_path
                                 )
-                            # Use openpyxl (non-blocking via to_thread)
-                            content = await asyncio.to_thread(_extract_xlsx, file)
+                            else:
+                                if (
+                                    global_args.document_loading_engine == "DOCLING"
+                                    and not _is_docling_available()
+                                ):
+                                    logger.warning(
+                                        f"DOCLING engine configured but not available for {file_path.name}. Falling back to openpyxl."
+                                    )
+                                content = await asyncio.to_thread(_extract_xlsx, file)
                     except Exception as e:
                         error_files = [
                             {
@@ -1720,6 +1892,66 @@ async def pipeline_enqueue_file(
                         )
                         logger.error(
                             f"[File Extraction]Error processing XLSX {file_path.name}: {str(e)}"
+                        )
+                        return False, track_id
+
+                case (
+                    ".png"
+                    | ".jpg"
+                    | ".jpeg"
+                    | ".bmp"
+                    | ".tiff"
+                    | ".tif"
+                    | ".gif"
+                    | ".webp"
+                ):
+                    # Image files are only supported via MinerU.
+                    # Other engines cannot extract meaningful text from raw images.
+                    try:
+                        mineru_cfg = _get_effective_mineru_config(kb_settings)
+                        if not mineru_cfg["enabled"]:
+                            error_files = [
+                                {
+                                    "file_path": str(file_path.name),
+                                    "error_description": (
+                                        f"[File Extraction]Image parsing requires MinerU engine. "
+                                        f"Set MINERU_ENABLED=true and MINERU_BASE_URL."
+                                    ),
+                                    "original_error": (
+                                        f"No engine available for image type {ext}. "
+                                        "Enable MinerU to process image files."
+                                    ),
+                                    "file_size": file_size,
+                                }
+                            ]
+                            await rag.apipeline_enqueue_error_documents(
+                                error_files, track_id
+                            )
+                            logger.error(
+                                f"[File Extraction]Image file {file_path.name} requires MINERU_ENABLED=true"
+                            )
+                            return False, track_id
+
+                        logger.info(
+                            f"[MinerU] Processing image: {file_path.name}"
+                        )
+                        content = await _extract_with_mineru(
+                            file_path, file, mineru_cfg
+                        )
+                    except Exception as e:
+                        error_files = [
+                            {
+                                "file_path": str(file_path.name),
+                                "error_description": "[File Extraction]Image processing error",
+                                "original_error": f"Failed to extract text from image: {str(e)}",
+                                "file_size": file_size,
+                            }
+                        ]
+                        await rag.apipeline_enqueue_error_documents(
+                            error_files, track_id
+                        )
+                        logger.error(
+                            f"[File Extraction]Error processing image {file_path.name}: {str(e)}"
                         )
                         return False, track_id
 
@@ -1862,6 +2094,7 @@ async def pipeline_index_file(
     file_path: Path,
     track_id: str = None,
     kb_settings: dict | None = None,
+    extract_doc_id: str | None = None,
 ):
     """Index a file with track_id
 
@@ -1870,17 +2103,50 @@ async def pipeline_index_file(
         file_path: Path to the saved file
         track_id: Optional tracking ID
         kb_settings: Optional per-KB settings for Docling VLM routing
+        extract_doc_id: Optional doc_status ID of the EXTRACTING placeholder
+            created by the upload endpoint.  Deleted on success/known failure;
+            updated to FAILED on unexpected exception so the document always
+            appears in the list.
     """
     try:
         success, returned_track_id = await pipeline_enqueue_file(
             rag, file_path, track_id, kb_settings=kb_settings
         )
+        # Remove the EXTRACTING placeholder in both success and known-failure
+        # cases: on success the real PENDING record is created by
+        # apipeline_enqueue_documents; on failure apipeline_enqueue_error_documents
+        # already wrote a FAILED record with an error-* ID.
+        if extract_doc_id:
+            try:
+                await rag.doc_status.delete([extract_doc_id])
+            except Exception:
+                pass
         if success:
             await rag.apipeline_process_enqueue_documents()
 
     except Exception as e:
         logger.error(f"Error indexing file {file_path.name}: {str(e)}")
         logger.error(traceback.format_exc())
+        # Unexpected exception: apipeline_enqueue_error_documents was never
+        # called, so update the EXTRACTING placeholder to FAILED so the user
+        # can see that something went wrong.
+        if extract_doc_id:
+            try:
+                now_iso = datetime.now(timezone.utc).isoformat()
+                await rag.doc_status.upsert({
+                    extract_doc_id: {
+                        "status": DocStatus.FAILED,
+                        "content_summary": f"提取失败: {file_path.name}",
+                        "content_length": 0,
+                        "file_path": file_path.name,
+                        "track_id": track_id,
+                        "created_at": now_iso,
+                        "updated_at": now_iso,
+                        "error_msg": str(e),
+                    }
+                })
+            except Exception:
+                pass
 
 
 async def pipeline_index_files(
@@ -1921,6 +2187,166 @@ async def pipeline_index_files(
     except Exception as e:
         logger.error(f"Error indexing files: {str(e)}")
         logger.error(traceback.format_exc())
+
+
+async def _reprocess_extraction_failures(
+    rag: LightRAG,
+    input_dir: Path,
+    kb_settings: dict | None = None,
+) -> int:
+    """Re-trigger content extraction for FAILED documents that have no extracted content.
+
+    A document is considered an *extraction failure* when its doc_status entry has
+    status=FAILED and there is no corresponding entry in ``full_docs`` storage (i.e.
+    content was never successfully extracted from the source file).
+
+    For each such document this function:
+    1. Verifies the original file still exists in *input_dir*.
+    2. Deletes the stale FAILED record.
+    3. Creates an EXTRACTING placeholder so the document remains visible in the UI.
+    4. Calls :func:`pipeline_enqueue_file` to re-run content extraction.
+    5. On success  – placeholder deleted; a real PENDING record is created by the
+       enqueue step and will be processed by ``apipeline_process_enqueue_documents``.
+    6. On known failure – placeholder deleted; ``apipeline_enqueue_error_documents``
+       already wrote a new FAILED record.
+    7. On unexpected exception – placeholder updated to FAILED with error details.
+
+    Documents with ``full_docs`` content (processing-stage failures) are left
+    untouched; they are handled by :meth:`~LightRAG.apipeline_process_enqueue_documents`.
+
+    Args:
+        rag: Active LightRAG instance.
+        input_dir: Directory where un-processed input files reside.
+        kb_settings: Optional per-KB settings forwarded to the extraction step.
+
+    Returns:
+        Number of files for which re-extraction was successfully scheduled.
+    """
+    failed_docs = await rag.doc_status.get_docs_by_status(DocStatus.FAILED)
+
+    # ── Phase 1: scan & mark ────────────────────────────────────────────────
+    # Convert ALL eligible FAILED records to EXTRACTING *before* starting any
+    # extraction call.  This lets the user see every file as "提取中"
+    # immediately rather than watching files flip one-by-one as each blocking
+    # MinerU call completes.
+    to_reprocess: list[tuple[Path, str, str]] = []  # (file_path, track_id, extract_doc_id)
+
+    for doc_id, status_doc in failed_docs.items():
+        # Skip processing-stage failures — those already have extracted content.
+        content = await rag.full_docs.get_by_id(doc_id)
+        if content is not None:
+            continue
+
+        file_name = getattr(status_doc, "file_path", "") or ""
+        if not file_name:
+            logger.warning(f"[Reprocess] Skipping {doc_id}: no file_path in record")
+            continue
+
+        file_path = input_dir / file_name
+        if not file_path.exists():
+            logger.warning(
+                f"[Reprocess] File not found for extraction-failed doc {doc_id}: {file_path}"
+            )
+            continue
+
+        track_id = getattr(status_doc, "track_id", None) or generate_track_id(
+            "reprocess"
+        )
+        extract_doc_id = f"extract-{track_id}"
+
+        # Delete the stale FAILED record and immediately create an EXTRACTING
+        # placeholder so every candidate is visible in the UI at once.
+        try:
+            await rag.doc_status.delete([doc_id])
+        except Exception as del_err:
+            logger.warning(
+                f"[Reprocess] Could not delete old record {doc_id}: {del_err}"
+            )
+
+        now_iso = datetime.now(timezone.utc).isoformat()
+        await rag.doc_status.upsert(
+            {
+                extract_doc_id: {
+                    "status": DocStatus.EXTRACTING,
+                    "content_summary": f"重新提取中: {file_name}",
+                    "content_length": 0,
+                    "file_path": file_name,
+                    "track_id": track_id,
+                    "created_at": now_iso,
+                    "updated_at": now_iso,
+                }
+            }
+        )
+        logger.info(
+            f"[Reprocess] Queued for re-extraction: {file_name} "
+            f"({doc_id} → {extract_doc_id})"
+        )
+        to_reprocess.append((file_path, track_id, extract_doc_id))
+
+    # ── Phase 2: extract sequentially ───────────────────────────────────────
+    # All files are already EXTRACTING in the UI; now process them one by one.
+    scheduled = 0
+    for file_path, track_id, extract_doc_id in to_reprocess:
+        file_name = file_path.name
+        logger.info(f"[Reprocess] Starting re-extraction: {file_name}")
+        try:
+            success, _ = await pipeline_enqueue_file(
+                rag, file_path, track_id, kb_settings=kb_settings
+            )
+            # Remove the EXTRACTING placeholder in both outcomes:
+            # success  → real PENDING record created by apipeline_enqueue_documents
+            # failure  → error record created by apipeline_enqueue_error_documents
+            try:
+                await rag.doc_status.delete([extract_doc_id])
+            except Exception:
+                pass
+            if success:
+                scheduled += 1
+        except Exception as e:
+            logger.error(
+                f"[Reprocess] Unexpected error re-extracting {file_name}: {e}"
+            )
+            logger.error(traceback.format_exc())
+            # Update placeholder to FAILED so the user sees the error.
+            try:
+                now_iso = datetime.now(timezone.utc).isoformat()
+                await rag.doc_status.upsert(
+                    {
+                        extract_doc_id: {
+                            "status": DocStatus.FAILED,
+                            "content_summary": f"重新提取失败: {file_name}",
+                            "content_length": 0,
+                            "file_path": file_name,
+                            "track_id": track_id,
+                            "created_at": now_iso,
+                            "updated_at": now_iso,
+                            "error_msg": str(e),
+                        }
+                    }
+                )
+            except Exception:
+                pass
+
+    return scheduled
+
+
+async def _reprocess_all_failed_background(
+    rag: LightRAG,
+    input_dir: Path,
+    kb_settings: dict | None = None,
+) -> None:
+    """Background task: re-extract extraction failures then run the processing pipeline.
+
+    Runs :func:`_reprocess_extraction_failures` first so that newly enqueued
+    documents are in PENDING state when ``apipeline_process_enqueue_documents``
+    starts its pass.
+    """
+    scheduled = await _reprocess_extraction_failures(rag, input_dir, kb_settings)
+    if scheduled:
+        logger.info(
+            f"[Reprocess] {scheduled} file(s) re-enqueued; starting processing pipeline."
+        )
+    await rag.apipeline_process_enqueue_documents()
 
 
 async def pipeline_index_texts(
@@ -2493,9 +2919,26 @@ def create_document_routes(
             except Exception:
                 pass  # Fall back to global_args
 
+            # Create an EXTRACTING placeholder in doc_status immediately so the
+            # document appears in the list during content extraction (which may
+            # take tens of seconds for MinerU/Docling processing).
+            extract_doc_id = f"extract-{track_id}"
+            now_iso = datetime.now(timezone.utc).isoformat()
+            await rag.doc_status.upsert({
+                extract_doc_id: {
+                    "status": DocStatus.EXTRACTING,
+                    "content_summary": f"正在提取内容: {safe_filename}",
+                    "content_length": 0,
+                    "file_path": safe_filename,
+                    "track_id": track_id,
+                    "created_at": now_iso,
+                    "updated_at": now_iso,
+                }
+            })
+
             # Add to background tasks and get track_id
             background_tasks.add_task(
-                pipeline_index_file, rag, file_path, track_id, kb_settings
+                pipeline_index_file, rag, file_path, track_id, kb_settings, extract_doc_id
             )
 
             return InsertResponse(
@@ -2991,6 +3434,7 @@ def create_document_routes(
         """
         try:
             statuses = (
+                DocStatus.EXTRACTING,
                 DocStatus.PENDING,
                 DocStatus.PROCESSING,
                 DocStatus.PREPROCESSED,
@@ -3461,36 +3905,56 @@ def create_document_routes(
         """
         Reprocess failed and pending documents.
 
-        This endpoint triggers the document processing pipeline which automatically
-        picks up and reprocesses documents in the following statuses:
-        - FAILED: Documents that failed during previous processing attempts
-        - PENDING: Documents waiting to be processed
-        - PROCESSING: Documents with abnormally terminated processing (e.g., server crashes)
+        Handles two categories of failures:
 
-        This is useful for recovering from server crashes, network errors, LLM service
-        outages, or other temporary failures that caused document processing to fail.
+        * **Extraction failures** – documents whose source file was never successfully
+          parsed (no entry in ``full_docs``).  The original file is located in the
+          input directory and re-extracted from scratch.  The stale FAILED record is
+          replaced by an EXTRACTING placeholder so the document remains visible during
+          re-extraction, then transitions through the normal PENDING → PROCESSING →
+          PROCESSED flow on success.
 
-        The processing happens in the background and can be monitored by checking the
-        pipeline status. The reprocessed documents retain their original track_id from
-        initial upload, so use their original track_id to monitor progress.
+        * **Processing failures** – documents that were extracted but failed during
+          chunking, entity extraction, or graph writing (entry exists in ``full_docs``).
+          These are reset to PENDING and retried by the standard pipeline.
+
+        The processing happens in the background. Documents retain their original
+        track_id from the initial upload wherever possible.
 
         Returns:
             ReprocessResponse: Response with status and message.
-                track_id is always empty string because reprocessed documents retain
-                their original track_id from initial upload.
 
         Raises:
             HTTPException: If an error occurs while initiating reprocessing (500).
         """
         try:
-            # Start the reprocessing in the background
-            # Note: Reprocessed documents retain their original track_id from initial upload
-            background_tasks.add_task(rag.apipeline_process_enqueue_documents)
+            # Resolve per-KB settings for Docling VLM routing (best-effort).
+            kb_settings: dict | None = None
+            try:
+                from ..kb_db import get_kb_db  # type: ignore
+
+                kb_id = get_current_kb_id()
+                if kb_id:
+                    kb_db = get_kb_db()
+                    kb_settings = await kb_db.get_kb_settings(kb_id) or {}
+            except Exception:
+                pass
+
+            background_tasks.add_task(
+                _reprocess_all_failed_background,
+                rag,
+                doc_manager.input_dir,
+                kb_settings,
+            )
             logger.info("Reprocessing of failed documents initiated")
 
             return ReprocessResponse(
                 status="reprocessing_started",
-                message="Reprocessing of failed documents has been initiated in background. Documents retain their original track_id.",
+                message=(
+                    "Reprocessing of failed documents has been initiated in background. "
+                    "Extraction failures will be re-extracted from the original file; "
+                    "processing failures will be retried from stored content."
+                ),
             )
 
         except Exception as e:

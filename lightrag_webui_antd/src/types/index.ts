@@ -2,7 +2,7 @@
 // Type Definitions
 // ============================================================
 
-export type DocStatus = 'pending' | 'processing' | 'preprocessed' | 'processed' | 'failed'
+export type DocStatus = 'extracting' | 'pending' | 'processing' | 'preprocessed' | 'processed' | 'failed'
 
 export type QueryMode = 'naive' | 'local' | 'global' | 'hybrid' | 'mix' | 'bypass'
 
