@@ -5,9 +5,13 @@ Uses Python built-in sqlite3 with asyncio.to_thread for async support.
 No extra dependencies required.
 """
 
-import sqlite3
-import uuid
+import argparse
 import asyncio
+import getpass
+import os
+import sqlite3
+import sys
+import uuid
 from datetime import datetime
 from typing import Optional
 from dataclasses import dataclass, field
@@ -225,4 +229,47 @@ def init_user_db(db_path: str) -> UserDB:
     global _user_db
     _user_db = UserDB(db_path)
     return _user_db
+
+
+# ── CLI: reset-password subcommand ───────────────────────────────────────────
+
+def reset_password_cmd(argv: list[str]) -> None:
+    """Standalone reset-password logic, importable without triggering server init."""
+    parser = argparse.ArgumentParser(
+        prog="lightrag-server reset-password",
+        description="Reset a LightRAG user password in the local database.",
+    )
+    parser.add_argument("username", help="Username whose password will be reset")
+    parser.add_argument(
+        "--password",
+        help="New password (will prompt securely if omitted)",
+    )
+    parser.add_argument(
+        "--working-dir",
+        default=os.getenv("LIGHTRAG_WORKING_DIR", "./rag_storage"),
+        help="LightRAG working directory containing lightrag_users.db (default: ./rag_storage)",
+    )
+    args = parser.parse_args(argv)
+
+    new_password = args.password or getpass.getpass("New password: ")
+    if not new_password:
+        print("Error: password cannot be empty.", file=sys.stderr)
+        sys.exit(1)
+
+    db_path = os.path.join(os.path.abspath(args.working_dir), "lightrag_users.db")
+    if not os.path.exists(db_path):
+        print(f"Error: database not found at {db_path}", file=sys.stderr)
+        sys.exit(1)
+
+    async def _reset() -> None:
+        db = UserDB(db_path)
+        await db.initialize()
+        user = await db.get_user_by_username(args.username)
+        if user is None:
+            print(f"Error: user '{args.username}' not found.", file=sys.stderr)
+            sys.exit(1)
+        await db.update_user(user.id, password=new_password)
+        print(f"Password for '{args.username}' has been reset successfully.")
+
+    asyncio.run(_reset())
 

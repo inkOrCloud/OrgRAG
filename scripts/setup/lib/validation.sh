@@ -359,53 +359,6 @@ validate_mongo_vector_storage_config() {
   return 0
 }
 
-validate_auth_accounts_format() {
-  local auth_accounts="$1"
-  local entry username password
-
-  if [[ -z "$auth_accounts" ]]; then
-    return 0
-  fi
-
-  if [[ "$auth_accounts" == ,* || "$auth_accounts" == *, || "$auth_accounts" == *",,"* ]]; then
-    return 1
-  fi
-
-  IFS=',' read -r -a entries <<< "$auth_accounts"
-  for entry in "${entries[@]}"; do
-    if [[ -z "$entry" || "$entry" != *:* ]]; then
-      return 1
-    fi
-
-    username="${entry%%:*}"
-    password="${entry#*:}"
-    if [[ -z "$username" || -z "$password" ]]; then
-      return 1
-    fi
-  done
-
-  return 0
-}
-
-validate_auth_accounts_password_safety() {
-  local auth_accounts="$1"
-  local entry password normalized_password
-
-  if [[ -z "$auth_accounts" ]]; then
-    return 0
-  fi
-
-  IFS=',' read -r -a entries <<< "$auth_accounts"
-  for entry in "${entries[@]}"; do
-    password="${entry#*:}"
-    normalized_password="${password,,}"
-    if [[ "$normalized_password" == admin* || "$normalized_password" == pass* ]]; then
-      return 1
-    fi
-  done
-
-  return 0
-}
 
 whitelist_exposes_api_routes() {
   local whitelist_paths="$1"
@@ -433,41 +386,13 @@ whitelist_exposes_api_routes() {
 }
 
 validate_security_config() {
-  local auth_accounts="${1:-${ENV_VALUES[AUTH_ACCOUNTS]:-}}"
-  local token_secret="${2:-${ENV_VALUES[TOKEN_SECRET]:-}}"
-  local _api_key="${3:-${ENV_VALUES[LIGHTRAG_API_KEY]:-}}"
-  local _unused_flag="${4:-no}"
-  local _unused_whitelist="${5:-${ENV_VALUES[WHITELIST_PATHS]:-}}"
-  local _unused_whitelist_is_set="${6:-}"
+  local token_secret="${1:-${ENV_VALUES[TOKEN_SECRET]:-}}"
 
-  if [[ -z "$auth_accounts" ]]; then
-    return 0
-  fi
-
-  if ! validate_auth_accounts_format "$auth_accounts"; then
+  # Only fail when TOKEN_SECRET is explicitly set to the known insecure default.
+  # An absent TOKEN_SECRET is allowed during wizard flows; the server will warn at runtime.
+  if [[ -n "$token_secret" && "$token_secret" == "lightrag-jwt-default-secret-key!" ]]; then
     format_error \
-      "AUTH_ACCOUNTS must use comma-separated user:password pairs." \
-      "Use entries like admin:{bcrypt}<hash> or admin:secret,reader:another-secret."
-    return 1
-  fi
-
-  if ! validate_auth_accounts_password_safety "$auth_accounts"; then
-    format_error \
-      "AUTH_ACCOUNTS passwords must not start with 'admin' or 'pass'." \
-      "Choose a less predictable password or use lightrag-hash-password to generate a {bcrypt} value."
-    return 1
-  fi
-
-  if [[ -z "$token_secret" ]]; then
-    format_error \
-      "AUTH_ACCOUNTS is set but TOKEN_SECRET is missing." \
-      "Set a non-empty JWT signing secret before enabling account-based authentication."
-    return 1
-  fi
-
-  if [[ "$token_secret" == "lightrag-jwt-default-secret-key!" ]]; then
-    format_error \
-      "TOKEN_SECRET must not use the built-in default value when AUTH_ACCOUNTS is enabled." \
+      "TOKEN_SECRET must not use the built-in default value." \
       "Generate a unique JWT signing secret and update TOKEN_SECRET."
     return 1
   fi

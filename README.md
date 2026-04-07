@@ -305,15 +305,19 @@ Pass via header: `X-API-Key: your-secret-key`
 
 ### JWT (Bearer Token)
 
+User accounts are managed in the local SQLite database (`lightrag_users.db`).
+Configure the JWT signing secret:
+
 ```env
-AUTH_ACCOUNTS=admin:{bcrypt}$2b$12$...,editor:plaintext-password
 TOKEN_SECRET=your-signing-secret
 TOKEN_EXPIRE_HOURS=24
 ```
 
-Generate a bcrypt password entry:
+Reset a password from the command line:
 ```bash
-lightrag-hash-password --username admin
+lightrag-server reset-password <username> --password <new-password>
+# Or prompt securely (password not echoed):
+lightrag-server reset-password <username>
 ```
 
 Login and use the token:
@@ -569,7 +573,6 @@ Key environment variables. See `env.example` for the full list.
 |----------|---------|-------------|
 | `LIGHTRAG_API_KEY` | *(none)* | Static API key |
 | `WHITELIST_PATHS` | `/health,/api/*` | Paths exempt from auth |
-| `AUTH_ACCOUNTS` | *(none)* | `user:{bcrypt}hash,...` pairs |
 | `TOKEN_SECRET` | *(random)* | JWT signing secret |
 | `TOKEN_EXPIRE_HOURS` | `24` | JWT token lifetime |
 

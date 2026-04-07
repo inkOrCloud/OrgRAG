@@ -139,19 +139,22 @@ WHITELIST_PATHS=/health,/api/*
 
 ### 2. JWT Bearer Token
 
-Configure accounts and signing secret:
+User accounts are managed in the local SQLite database (`lightrag_users.db`).
+Configure the JWT signing secret:
 
 ```env
-AUTH_ACCOUNTS=admin:{bcrypt}$2b$12$...,editor:plaintextpass
 TOKEN_SECRET=your-jwt-signing-secret
 TOKEN_EXPIRE_HOURS=24
 ```
 
-Generate a bcrypt hash entry:
+**Reset a user password** from the command line:
 
 ```bash
-lightrag-hash-password --username admin
-# Prints: admin:{bcrypt}$2b$12$...   (paste into AUTH_ACCOUNTS)
+lightrag-server reset-password <username> --password <new-password>
+# Or prompt securely (password not echoed):
+lightrag-server reset-password <username>
+# Non-default working directory:
+lightrag-server reset-password <username> --working-dir /data/rag_storage
 ```
 
 **Login** (`POST /login`) to get a JWT:
@@ -291,6 +294,38 @@ Authenticate and receive a JWT token.
   "api_version": "..."
 }
 ```
+
+---
+
+#### `GET /setup/status`
+Check whether the initial one-time setup has been completed.
+
+**Auth**: Not required (always public)
+
+**Response**:
+```json
+{"setup_required": true}
+```
+
+---
+
+#### `POST /setup`
+Complete the initial system setup (admin user + root organization + default KB).
+Only operational when `setup_required` is `true`; returns `409` afterwards.
+
+**Auth**: Not required
+
+**Request**:
+```json
+{
+  "admin_username": "admin",
+  "admin_password": "secure-password",
+  "org_name": "My Organization",
+  "kb_name": "Default Knowledge Base"
+}
+```
+
+**Response**: `201 Created`
 
 ---
 
@@ -578,14 +613,20 @@ Clear all documents from the current KB.
 ---
 
 #### `DELETE /documents/delete_document`
-Delete a specific document and its associated data.
+Delete one or more specific documents and their associated data.
 
 **Auth**: Required
 
 **Request body**:
 ```json
-{"doc_id": "doc-abc123", "delete_file": false}
+{"doc_ids": ["doc-abc123", "doc-def456"], "delete_file": false, "delete_llm_cache": false}
 ```
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `doc_ids` | string[] | required | List of document IDs to delete |
+| `delete_file` | bool | `false` | Also delete source files from disk |
+| `delete_llm_cache` | bool | `false` | Also delete cached LLM extraction results |
 
 ---
 
@@ -608,7 +649,7 @@ Delete a specific relation from the knowledge graph.
 
 **Request body**:
 ```json
-{"src_id": "EntityA", "tgt_id": "EntityB"}
+{"source_entity": "EntityA", "target_entity": "EntityB"}
 ```
 
 ---
@@ -641,6 +682,25 @@ Cancel the currently running indexing pipeline.
 
 ---
 
+#### `GET /documents/{doc_id}/content`
+Return the full text content of a document stored in the KV store.
+
+**Auth**: Required
+
+**Path params**: `doc_id` — document ID
+
+**Response**:
+```json
+{
+  "id": "doc-abc123",
+  "file_path": "report.pdf",
+  "content": "Full markdown content...",
+  "content_length": 4096
+}
+```
+
+---
+
 ### Knowledge Graph Endpoints
 
 #### `GET /graphs`
@@ -650,9 +710,9 @@ Retrieve a subgraph for visualization.
 **KB routing**: `X-KB-ID` header
 
 **Query params**:
-- `label` (string) — entity label/name to center the subgraph on
-- `max_depth` (int, default 2) — traversal depth
-- `max_nodes` (int, default 100) — maximum nodes to return
+- `label` (string, required) — entity label/name to center the subgraph on
+- `max_depth` (int, default 3) — traversal depth
+- `max_nodes` (int, default 1000) — maximum nodes to return
 
 **Response**:
 ```json
@@ -674,16 +734,16 @@ List all entity labels (names) in the graph.
 #### `GET /graph/label/popular`
 Return the most frequently connected entity labels.
 
-**Auth**: Required  
-**Query params**: `limit` (int, default 50)
+**Auth**: Required
+**Query params**: `limit` (int, default 300, max 1000)
 
 ---
 
 #### `GET /graph/label/search`
-Search entity labels by prefix.
+Search entity labels by keyword.
 
-**Auth**: Required  
-**Query params**: `query` (string), `limit` (int)
+**Auth**: Required
+**Query params**: `q` (string, required), `limit` (int, default 50, max 100)
 
 ---
 
@@ -700,15 +760,22 @@ Create a new entity node.
 
 **Auth**: Required
 
-**Request body**:
+**Request body** (`EntityCreateRequest`):
 ```json
 {
-  "entity_name": "NewConcept",
-  "entity_type": "CONCEPT",
-  "description": "Description of the entity",
-  "source_id": "manual-insert"
+  "entity_name": "Tesla",
+  "entity_data": {
+    "description": "Electric vehicle manufacturer",
+    "entity_type": "ORGANIZATION",
+    "source_id": "manual-insert"
+  }
 }
 ```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `entity_name` | string | Unique name for the new entity |
+| `entity_data` | object | Entity properties (`description`, `entity_type`, `source_id`, etc.) |
 
 ---
 
@@ -717,29 +784,45 @@ Update an existing entity's attributes.
 
 **Auth**: Required
 
-**Request body**:
+**Request body** (`EntityUpdateRequest`):
 ```json
 {
   "entity_name": "ExistingEntity",
-  "description": "Updated description",
-  "entity_type": "ORGANIZATION"
+  "updated_data": {
+    "description": "Updated description",
+    "entity_type": "ORGANIZATION"
+  },
+  "allow_rename": false,
+  "allow_merge": false
 }
 ```
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `entity_name` | string | required | Name of the entity to update |
+| `updated_data` | object | required | Properties to update |
+| `allow_rename` | bool | `false` | Allow renaming the entity |
+| `allow_merge` | bool | `false` | Allow merging with an existing entity if rename conflicts |
 
 ---
 
 #### `POST /graph/entities/merge`
-Merge multiple entity nodes into one.
+Merge multiple entity nodes into one, preserving all relationships.
 
 **Auth**: Required
 
-**Request body**:
+**Request body** (`EntityMergeRequest`):
 ```json
 {
-  "source_entities": ["EntityA", "EntityB"],
-  "target_entity": "MergedEntity"
+  "entities_to_change": ["Elon Msk", "Ellon Musk"],
+  "entity_to_change_into": "Elon Musk"
 }
 ```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `entities_to_change` | string[] | Entities to be merged and removed (duplicates/typos) |
+| `entity_to_change_into` | string | Target entity that receives all relationships |
 
 ---
 
@@ -748,16 +831,24 @@ Create a new relation (edge) between two entities.
 
 **Auth**: Required
 
-**Request body**:
+**Request body** (`RelationCreateRequest`):
 ```json
 {
-  "src_id": "EntityA",
-  "tgt_id": "EntityB",
-  "description": "Relation description",
-  "keywords": "related, connection",
-  "weight": 1.0
+  "source_entity": "Elon Musk",
+  "target_entity": "Tesla",
+  "relation_data": {
+    "description": "Elon Musk is the CEO of Tesla",
+    "keywords": "CEO, founder",
+    "weight": 1.0
+  }
 }
 ```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `source_entity` | string | Name of the source entity (must exist) |
+| `target_entity` | string | Name of the target entity (must exist) |
+| `relation_data` | object | Relation properties (`description`, `keywords`, `weight`, etc.) |
 
 ---
 
@@ -766,14 +857,23 @@ Update an existing relation's attributes.
 
 **Auth**: Required
 
-**Request body**:
+**Request body** (`RelationUpdateRequest`):
 ```json
 {
-  "src_id": "EntityA",
-  "tgt_id": "EntityB",
-  "description": "Updated description"
+  "source_id": "EntityA",
+  "target_id": "EntityB",
+  "updated_data": {
+    "description": "Updated description",
+    "weight": 2.0
+  }
 }
 ```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `source_id` | string | Name of the source entity |
+| `target_id` | string | Name of the target entity |
+| `updated_data` | object | Properties to update |
 
 ---
 
@@ -1014,6 +1114,33 @@ Change the current user's own password.
 
 ---
 
+#### `POST /users/me/avatar`
+Upload or replace the current user's avatar image.
+
+**Auth**: Any authenticated user
+**Content-Type**: `multipart/form-data`
+
+**Form fields**: `file` — image file (JPEG, PNG, GIF, WebP, SVG)
+
+**Response**:
+```json
+{"avatar_url": "/avatars/alice.jpg", "message": "Avatar uploaded successfully"}
+```
+
+---
+
+#### `DELETE /users/me/avatar`
+Remove the current user's avatar.
+
+**Auth**: Any authenticated user
+
+**Response**:
+```json
+{"message": "Avatar removed successfully"}
+```
+
+---
+
 #### `GET /users/{user_id}`
 Get a user by ID (admin only).
 
@@ -1134,12 +1261,15 @@ Grant a KB permission to an org member.
 
 **Auth**: Required (admin or org-admin)
 
-**Request**:
+**Request** (`KBPermissionRequest`):
 ```json
-{"username": "alice", "kb_id": "kb-uuid", "permission": "kb_write"}
+{"username": "alice", "permission": "write"}
 ```
 
-Permission values: `kb_read`, `kb_write`
+| Field | Type | Description |
+|-------|------|-------------|
+| `username` | string | Username of the org member |
+| `permission` | string | `"read"` or `"write"` |
 
 **Response**: `201 Created`
 
@@ -1147,6 +1277,8 @@ Permission values: `kb_read`, `kb_write`
 
 #### `DELETE /orgs/{org_id}/kb-permissions/{username}/{permission}`
 Revoke a KB permission.
+
+**Path params**: `username`, `permission` (`"read"` or `"write"`)
 
 ---
 
@@ -1251,7 +1383,6 @@ Ollama chat completion — routes through LightRAG query engine.
 |----------|---------|-------------|
 | `LIGHTRAG_API_KEY` | *(none)* | Static API key |
 | `WHITELIST_PATHS` | `/health,/api/*` | Comma-separated exempt paths |
-| `AUTH_ACCOUNTS` | *(none)* | `user:{bcrypt}hash,user2:pass` pairs |
 | `TOKEN_SECRET` | *(random warning)* | JWT signing secret |
 | `TOKEN_EXPIRE_HOURS` | `24` | JWT token lifetime |
 

@@ -46,10 +46,7 @@ from lightrag.constants import (
     DEFAULT_LLM_TIMEOUT,
     DEFAULT_EMBEDDING_TIMEOUT,
 )
-from lightrag.api.routers.document_routes import (
-    DocumentManager,
-    create_document_routes,
-)
+from lightrag.api.routers.document_routes import create_document_routes
 from lightrag.api.routers.query_routes import create_query_routes
 from lightrag.api.routers.graph_routes import create_graph_routes
 from lightrag.api.routers.ollama_api import OllamaAPI
@@ -1747,12 +1744,22 @@ def check_and_install_dependencies():
             print(f"{package} installed successfully")
 
 
+def _cmd_reset_password(argv: list[str]) -> None:
+    """Subcommand: reset-password — update a user's password in the local SQLite database."""
+    from lightrag.api.user_db import reset_password_cmd
+    reset_password_cmd(argv)
+
+
 def main():
     # On Windows, ProactorEventLoop (default since Python 3.8) has known
     # race conditions with uvicorn's socket binding that can cause the server
     # to report it's running while the port is never actually bound.
     # Using SelectorEventLoop resolves this issue.
     # See: https://github.com/HKUDS/LightRAG/issues/2438
+    if len(sys.argv) > 1 and sys.argv[1] == "reset-password":
+        _cmd_reset_password(sys.argv[2:])
+        return
+
     if sys.platform == "win32":
         import asyncio
 

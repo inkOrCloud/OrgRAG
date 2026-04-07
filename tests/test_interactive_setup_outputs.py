@@ -6183,7 +6183,7 @@ def test_finalize_server_setup_allows_risky_security_config_and_security_check_r
     write_text_lines(
         tmp_path / ".env",
         [
-            "AUTH_ACCOUNTS=admin:secret",
+            "LIGHTRAG_API_KEY=my-api-key",
             "TOKEN_SECRET=jwt-secret",
             "WHITELIST_PATHS=/health,/api/*",
         ],
@@ -6238,8 +6238,8 @@ security_check_env_file
     assert "WHITELIST_PATHS exposes /api routes" in result.stdout
 
 
-def test_finalize_server_setup_rejects_malformed_auth_accounts(tmp_path: Path) -> None:
-    """Server setup should fail fast instead of persisting invalid AUTH_ACCOUNTS syntax."""
+def test_finalize_server_setup_rejects_default_token_secret(tmp_path: Path) -> None:
+    """Server setup should fail fast when TOKEN_SECRET is set to the built-in default."""
 
     write_text_lines(tmp_path / ".env", ["HOST=0.0.0.0"])
     write_text_lines(
@@ -6257,8 +6257,7 @@ load_existing_env_if_present
 
 collect_server_config() {{ :; }}
 collect_ssl_config() {{ :; }}
-ENV_VALUES[AUTH_ACCOUNTS]="admin"
-ENV_VALUES[TOKEN_SECRET]="jwt-secret"
+ENV_VALUES[TOKEN_SECRET]="lightrag-jwt-default-secret-key!"
 show_summary() {{ :; }}
 confirm_default_yes() {{ return 0; }}
 confirm_required_yes_no() {{ return 0; }}
@@ -6624,7 +6623,6 @@ def test_collect_security_config_can_clear_existing_values_on_rerun(
     env_file.write_text(
         "\n".join(
             [
-                "AUTH_ACCOUNTS=admin:secret",
                 "TOKEN_SECRET=jwt-secret",
                 "TOKEN_EXPIRE_HOURS=72",
                 "LIGHTRAG_API_KEY=api-key",
@@ -6650,7 +6648,6 @@ prompt_clearable_secret_with_default() {{ printf '%s' "$CLEAR_INPUT_SENTINEL"; }
 collect_security_config yes no
 generate_env_file "{REPO_ROOT}/env.example" "$REPO_ROOT/.env.generated"
 
-printf 'AUTH_ACCOUNTS_SET=%s\\n' "${{ENV_VALUES[AUTH_ACCOUNTS]+set}}"
 printf 'TOKEN_SECRET_SET=%s\\n' "${{ENV_VALUES[TOKEN_SECRET]+set}}"
 printf 'TOKEN_EXPIRE_HOURS_SET=%s\\n' "${{ENV_VALUES[TOKEN_EXPIRE_HOURS]+set}}"
 printf 'LIGHTRAG_API_KEY_SET=%s\\n' "${{ENV_VALUES[LIGHTRAG_API_KEY]+set}}"
@@ -6662,12 +6659,10 @@ printf 'WHITELIST_PATHS_SET=%s\\n' "${{ENV_VALUES[WHITELIST_PATHS]+set}}"
         (tmp_path / ".env.generated").read_text(encoding="utf-8").splitlines()
     )
 
-    assert values["AUTH_ACCOUNTS_SET"] == ""
     assert values["TOKEN_SECRET_SET"] == ""
     assert values["TOKEN_EXPIRE_HOURS_SET"] == ""
     assert values["LIGHTRAG_API_KEY_SET"] == ""
     assert values["WHITELIST_PATHS_SET"] == "set"
-    assert not any(line.startswith("AUTH_ACCOUNTS=") for line in generated_lines)
     assert not any(line.startswith("TOKEN_SECRET=") for line in generated_lines)
     assert not any(line.startswith("TOKEN_EXPIRE_HOURS=") for line in generated_lines)
     assert not any(line.startswith("LIGHTRAG_API_KEY=") for line in generated_lines)
@@ -7044,8 +7039,8 @@ printf 'PASSWORD_PROMPTS=%s\\n' "$(grep -c '^secret_with_default$' "$prompt_log_
     assert values["PASSWORD_PROMPTS"] == "1"
 
 
-def test_validate_security_config_rejects_malformed_auth_accounts() -> None:
-    """Security validation should reject auth entries the API cannot parse."""
+def test_validate_security_config_rejects_default_token_secret() -> None:
+    """Security validation should reject TOKEN_SECRET set to the built-in default."""
 
     output = run_bash(
         f"""
@@ -7053,51 +7048,30 @@ set -euo pipefail
 source "{REPO_ROOT}/scripts/setup/setup.sh"
 reset_state
 
-if validate_security_config "admin" "token-secret" "" no "/health"; then
-  printf 'MISSING_COLON=yes\\n'
+if validate_security_config ""; then
+  printf 'ABSENT=yes\\n'
 else
-  printf 'MISSING_COLON=no\\n'
+  printf 'ABSENT=no\\n'
 fi
 
-if validate_security_config "admin:secret," "token-secret" "" no "/health"; then
-  printf 'TRAILING_COMMA=yes\\n'
+if validate_security_config "my-custom-secret"; then
+  printf 'CUSTOM=yes\\n'
 else
-  printf 'TRAILING_COMMA=no\\n'
+  printf 'CUSTOM=no\\n'
 fi
 
-if validate_security_config "admin:secret,reader:hunter2" "token-secret" "" no "/health"; then
-  printf 'VALID_FORMAT=yes\\n'
+if validate_security_config "lightrag-jwt-default-secret-key!"; then
+  printf 'DEFAULT=yes\\n'
 else
-  printf 'VALID_FORMAT=no\\n'
-fi
-
-if validate_security_config 'admin:{{bcrypt}}$2b$12$abcdefghijklmnopqrstuuuuuuuuuuuuuuuuuuuuuuuuuuuu' "token-secret" "" no "/health"; then
-  printf 'BCRYPT_FORMAT=yes\\n'
-else
-  printf 'BCRYPT_FORMAT=no\\n'
-fi
-
-if validate_security_config "admin:admin123!" "token-secret" "" no "/health"; then
-  printf 'ADMIN_PREFIX=yes\\n'
-else
-  printf 'ADMIN_PREFIX=no\\n'
-fi
-
-if validate_security_config "admin:Passw0rd!" "token-secret" "" no "/health"; then
-  printf 'PASS_PREFIX=yes\\n'
-else
-  printf 'PASS_PREFIX=no\\n'
+  printf 'DEFAULT=no\\n'
 fi
 """
     )
     values = parse_lines(output)
 
-    assert values["MISSING_COLON"] == "no"
-    assert values["TRAILING_COMMA"] == "no"
-    assert values["VALID_FORMAT"] == "yes"
-    assert values["BCRYPT_FORMAT"] == "yes"
-    assert values["ADMIN_PREFIX"] == "no"
-    assert values["PASS_PREFIX"] == "no"
+    assert values["ABSENT"] == "yes"   # absent → no-op, allowed
+    assert values["CUSTOM"] == "yes"   # custom secret → OK
+    assert values["DEFAULT"] == "no"   # built-in default → rejected
 
 
 def test_security_check_reports_missing_authentication(tmp_path: Path) -> None:
@@ -7133,7 +7107,6 @@ def test_security_check_passes_for_authenticated_minimal_config(tmp_path: Path) 
     write_text_lines(
         tmp_path / ".env",
         [
-            "AUTH_ACCOUNTS=admin:secret",
             "TOKEN_SECRET=jwt-secret",
             "WHITELIST_PATHS=/health",
         ],
@@ -7160,16 +7133,16 @@ security_check_env_file
     assert result.returncode == 0
 
 
-def test_security_check_reports_predictable_auth_password_prefix(
+def test_security_check_reports_default_token_secret(
     tmp_path: Path,
 ) -> None:
-    """Security audit should flag AUTH_ACCOUNTS passwords with predictable prefixes."""
+    """Security audit should flag TOKEN_SECRET set to the built-in default value."""
 
     write_text_lines(
         tmp_path / ".env",
         [
-            "AUTH_ACCOUNTS=admin:admin123!",
-            "TOKEN_SECRET=jwt-secret",
+            "TOKEN_SECRET=lightrag-jwt-default-secret-key!",
+            "LIGHTRAG_API_KEY=my-api-key",
             "WHITELIST_PATHS=/health",
         ],
     )
@@ -7193,7 +7166,7 @@ security_check_env_file
     )
 
     assert result.returncode == 1
-    assert "AUTH_ACCOUNTS uses a predictable password prefix." in result.stdout
+    assert "TOKEN_SECRET still uses the built-in default value." in result.stdout
 
 
 def test_security_check_reports_api_key_only_with_default_whitelist(

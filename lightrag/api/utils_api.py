@@ -69,20 +69,26 @@ def check_env_file():
     return True
 
 
-# Get whitelist paths from global_args, only once during initialization
-whitelist_paths = global_args.whitelist_paths.split(",")
+# Lazily compiled whitelist patterns – populated on first auth check so that
+# importing this module does NOT trigger parse_args() at module level.
+# This lets CLI sub-commands (e.g. reset-password) import safely without
+# argparse rejecting their arguments.
+_whitelist_patterns: Optional[List[Tuple[str, bool]]] = None
 
-# Pre-compile path matching patterns
-whitelist_patterns: List[Tuple[str, bool]] = []
-for path in whitelist_paths:
-    path = path.strip()
-    if path:
-        # If path ends with /*, match all paths with that prefix
-        if path.endswith("/*"):
-            prefix = path[:-2]
-            whitelist_patterns.append((prefix, True))  # (prefix, is_prefix_match)
-        else:
-            whitelist_patterns.append((path, False))  # (exact_path, is_prefix_match)
+
+def _get_whitelist_patterns() -> List[Tuple[str, bool]]:
+    """Return compiled whitelist patterns, initialising once on first call."""
+    global _whitelist_patterns
+    if _whitelist_patterns is None:
+        _whitelist_patterns = []
+        for path in global_args.whitelist_paths.split(","):
+            path = path.strip()
+            if path:
+                if path.endswith("/*"):
+                    _whitelist_patterns.append((path[:-2], True))
+                else:
+                    _whitelist_patterns.append((path, False))
+    return _whitelist_patterns
 
 def get_combined_auth_dependency(api_key: Optional[str] = None):
     """
@@ -120,7 +126,7 @@ def get_combined_auth_dependency(api_key: Optional[str] = None):
     ):
         # 1. Check if path is in whitelist
         path = request.url.path
-        for pattern, is_prefix in whitelist_patterns:
+        for pattern, is_prefix in _get_whitelist_patterns():
             if (is_prefix and path.startswith(pattern)) or (
                 not is_prefix and path == pattern
             ):

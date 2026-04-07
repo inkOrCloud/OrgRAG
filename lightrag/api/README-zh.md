@@ -134,16 +134,22 @@ curl http://localhost:9621/documents/scan \
 
 ### 2. JWT Bearer 令牌认证
 
+用户账户存储在本地 SQLite 数据库（`lightrag_users.db`）中。
+配置 JWT 签名密钥：
+
 ```env
-AUTH_ACCOUNTS=admin:{bcrypt}$2b$12$...,editor:明文密码
 TOKEN_SECRET=JWT签名密钥
 TOKEN_EXPIRE_HOURS=24
 ```
 
-生成 bcrypt 密码条目：
+**命令行重置用户密码**：
 
 ```bash
-lightrag-hash-password --username admin
+lightrag-server reset-password <用户名> --password <新密码>
+# 或安全交互式输入（密码不回显）：
+lightrag-server reset-password <用户名>
+# 指定非默认工作目录：
+lightrag-server reset-password <用户名> --working-dir /data/rag_storage
 ```
 
 **登录获取 JWT**（`POST /login`）：
@@ -271,6 +277,35 @@ curl http://localhost:9621/query \
 ```json
 {"access_token": "eyJ...", "token_type": "bearer", "auth_mode": "enabled", "role": "admin"}
 ```
+
+---
+
+#### `GET /setup/status`
+检查系统是否已完成一次性初始化配置。
+
+**认证**：不需要（始终公开）
+
+**响应**：`{"setup_required": true}`
+
+---
+
+#### `POST /setup`
+完成系统初始化（创建管理员账户 + 根组织 + 默认知识库）。
+仅在 `setup_required` 为 `true` 时可用；初始化完成后调用返回 `409`。
+
+**认证**：不需要
+
+**请求体**：
+```json
+{
+  "admin_username": "admin",
+  "admin_password": "安全密码",
+  "org_name": "我的组织",
+  "kb_name": "默认知识库"
+}
+```
+
+**响应**：`201 Created`
 
 ---
 
@@ -463,9 +498,18 @@ curl http://localhost:9621/query \
 ---
 
 #### `DELETE /documents/delete_document`
-删除特定文档及其关联数据。
+删除一个或多个文档及其关联数据。
 
-**请求体**：`{"doc_id": "doc-abc123", "delete_file": false}`
+**请求体**：
+```json
+{"doc_ids": ["doc-abc123", "doc-def456"], "delete_file": false, "delete_llm_cache": false}
+```
+
+| 字段 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `doc_ids` | string[] | 必填 | 待删除的文档 ID 列表 |
+| `delete_file` | bool | `false` | 同时删除磁盘上的源文件 |
+| `delete_llm_cache` | bool | `false` | 同时删除缓存的 LLM 提取结果 |
 
 ---
 
@@ -479,7 +523,7 @@ curl http://localhost:9621/query \
 #### `DELETE /documents/delete_relation`
 从知识图谱中删除特定关系。
 
-**请求体**：`{"src_id": "实体A", "tgt_id": "实体B"}`
+**请求体**：`{"source_entity": "实体A", "target_entity": "实体B"}`
 
 ---
 
@@ -500,15 +544,34 @@ curl http://localhost:9621/query \
 
 ---
 
+#### `GET /documents/{doc_id}/content`
+返回文档在 KV 存储中的完整文本内容。
+
+**认证**：需要
+
+**路径参数**：`doc_id` — 文档 ID
+
+**响应**：
+```json
+{
+  "id": "doc-abc123",
+  "file_path": "report.pdf",
+  "content": "文档完整 Markdown 内容...",
+  "content_length": 4096
+}
+```
+
+---
+
 ### 知识图谱接口
 
 #### `GET /graphs`
 获取用于可视化的子图数据。
 
 **查询参数**：
-- `label`（string）— 以该实体为中心
-- `max_depth`（int，默认 2）— 遍历深度
-- `max_nodes`（int，默认 100）— 最大节点数
+- `label`（string，必填）— 以该实体为中心
+- `max_depth`（int，默认 3）— 遍历深度
+- `max_nodes`（int，默认 1000）— 最大节点数
 
 **响应**：
 ```json
@@ -520,8 +583,22 @@ curl http://localhost:9621/query \
 
 ---
 
-#### `GET /graph/label/list` · `GET /graph/label/popular` · `GET /graph/label/search`
-列出所有实体标签、获取最热门标签、按前缀搜索标签。
+#### `GET /graph/label/list`
+列出知识图谱中的所有实体标签（名称）。
+
+---
+
+#### `GET /graph/label/popular`
+返回连接度最高的实体标签。
+
+**查询参数**：`limit`（int，默认 300，最大 1000）
+
+---
+
+#### `GET /graph/label/search`
+按关键词搜索实体标签。
+
+**查询参数**：`q`（string，必填），`limit`（int，默认 50，最大 100）
 
 ---
 
@@ -533,41 +610,112 @@ curl http://localhost:9621/query \
 #### `POST /graph/entity/create`
 创建新实体节点。
 
-**请求体**：
+**请求体**（`EntityCreateRequest`）：
 ```json
-{"entity_name": "新概念", "entity_type": "CONCEPT", "description": "...", "source_id": "manual-insert"}
+{
+  "entity_name": "特斯拉",
+  "entity_data": {
+    "description": "电动汽车制造商",
+    "entity_type": "ORGANIZATION",
+    "source_id": "manual-insert"
+  }
+}
 ```
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `entity_name` | string | 实体唯一名称 |
+| `entity_data` | object | 实体属性（`description`、`entity_type`、`source_id` 等） |
 
 ---
 
 #### `POST /graph/entity/edit`
 更新已有实体属性。
 
-**请求体**：`{"entity_name": "已有实体", "description": "更新后的描述", "entity_type": "ORGANIZATION"}`
+**请求体**（`EntityUpdateRequest`）：
+```json
+{
+  "entity_name": "已有实体",
+  "updated_data": {
+    "description": "更新后的描述",
+    "entity_type": "ORGANIZATION"
+  },
+  "allow_rename": false,
+  "allow_merge": false
+}
+```
+
+| 字段 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `entity_name` | string | 必填 | 待更新的实体名称 |
+| `updated_data` | object | 必填 | 要更新的属性 |
+| `allow_rename` | bool | `false` | 是否允许重命名实体 |
+| `allow_merge` | bool | `false` | 重命名冲突时是否允许合并 |
 
 ---
 
 #### `POST /graph/entities/merge`
-将多个实体节点合并为一个。
+将多个实体节点合并为一个，保留所有关系。
 
-**请求体**：`{"source_entities": ["实体A", "实体B"], "target_entity": "合并后实体"}`
+**请求体**（`EntityMergeRequest`）：
+```json
+{
+  "entities_to_change": ["实体A别名", "实体A错误拼写"],
+  "entity_to_change_into": "实体A"
+}
+```
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `entities_to_change` | string[] | 待合并并删除的实体列表（重复或拼写错误的实体） |
+| `entity_to_change_into` | string | 接收所有关系的目标实体（保留） |
 
 ---
 
 #### `POST /graph/relation/create`
 创建两个实体之间的新关系。
 
-**请求体**：
+**请求体**（`RelationCreateRequest`）：
 ```json
-{"src_id": "实体A", "tgt_id": "实体B", "description": "关系描述", "keywords": "关键词", "weight": 1.0}
+{
+  "source_entity": "实体A",
+  "target_entity": "实体B",
+  "relation_data": {
+    "description": "关系描述",
+    "keywords": "关键词",
+    "weight": 1.0
+  }
+}
 ```
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `source_entity` | string | 源实体名称（必须已存在） |
+| `target_entity` | string | 目标实体名称（必须已存在） |
+| `relation_data` | object | 关系属性（`description`、`keywords`、`weight` 等） |
 
 ---
 
 #### `POST /graph/relation/edit`
 更新已有关系属性。
 
-**请求体**：`{"src_id": "实体A", "tgt_id": "实体B", "description": "更新后的描述"}`
+**请求体**（`RelationUpdateRequest`）：
+```json
+{
+  "source_id": "实体A",
+  "target_id": "实体B",
+  "updated_data": {
+    "description": "更新后的描述",
+    "weight": 2.0
+  }
+}
+```
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `source_id` | string | 源实体名称 |
+| `target_id` | string | 目标实体名称 |
+| `updated_data` | object | 要更新的属性 |
 
 ---
 
@@ -707,6 +855,30 @@ curl http://localhost:9621/query \
 
 ---
 
+#### `POST /users/me/avatar`
+上传或替换当前用户的头像图片。
+
+**认证**：任何已认证用户
+**Content-Type**：`multipart/form-data`
+
+**表单字段**：`file` — 图片文件（支持 JPEG、PNG、GIF、WebP、SVG）
+
+**响应**：
+```json
+{"avatar_url": "/avatars/alice.jpg", "message": "Avatar uploaded successfully"}
+```
+
+---
+
+#### `DELETE /users/me/avatar`
+删除当前用户的头像。
+
+**认证**：任何已认证用户
+
+**响应**：`{"message": "Avatar removed successfully"}`
+
+---
+
 #### `GET /users/{user_id}` · `PUT /users/{user_id}` · `DELETE /users/{user_id}`
 获取、更新、删除指定用户（admin）。
 
@@ -769,9 +941,15 @@ curl http://localhost:9621/query \
 #### `POST /orgs/{org_id}/kb-permissions`
 为组织成员授予知识库权限（需要 admin 或组织管理员权限）。
 
-**请求体**：`{"username": "alice", "kb_id": "kb-uuid", "permission": "kb_write"}`
+**请求体**（`KBPermissionRequest`）：
+```json
+{"username": "alice", "permission": "write"}
+```
 
-权限值：`kb_read`、`kb_write`
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `username` | string | 组织成员的用户名 |
+| `permission` | string | `"read"` 或 `"write"` |
 
 **响应**：`201 Created`
 
@@ -779,6 +957,8 @@ curl http://localhost:9621/query \
 
 #### `DELETE /orgs/{org_id}/kb-permissions/{username}/{permission}`
 撤销知识库权限。
+
+**路径参数**：`username`，`permission`（`"read"` 或 `"write"`）
 
 ---
 
@@ -881,7 +1061,6 @@ Ollama 聊天补全接口 — 通过 LightRAG 查询引擎处理。
 |------|--------|------|
 | `LIGHTRAG_API_KEY` | *(无)* | 静态 API Key |
 | `WHITELIST_PATHS` | `/health,/api/*` | 免认证路径 |
-| `AUTH_ACCOUNTS` | *(无)* | `用户:{bcrypt}哈希,...` 配置 |
 | `TOKEN_SECRET` | *(随机，会产生警告)* | JWT 签名密钥（生产环境必须设置） |
 | `TOKEN_EXPIRE_HOURS` | `24` | JWT 有效期（小时） |
 

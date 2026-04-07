@@ -305,15 +305,19 @@ WHITELIST_PATHS=/health,/api/*
 
 ### JWT Bearer 令牌认证
 
+用户账户存储在本地 SQLite 数据库（`lightrag_users.db`）中。
+配置 JWT 签名密钥：
+
 ```env
-AUTH_ACCOUNTS=admin:{bcrypt}$2b$12$...,editor:明文密码
 TOKEN_SECRET=你的签名密钥
 TOKEN_EXPIRE_HOURS=24
 ```
 
-生成 bcrypt 密码条目：
+命令行重置用户密码：
 ```bash
-lightrag-hash-password --username admin
+lightrag-server reset-password <用户名> --password <新密码>
+# 或安全交互式输入（密码不回显）：
+lightrag-server reset-password <用户名>
 ```
 
 登录获取令牌：
@@ -562,7 +566,6 @@ docker compose up
 |------|--------|------|
 | `LIGHTRAG_API_KEY` | *(无)* | 静态 API Key |
 | `WHITELIST_PATHS` | `/health,/api/*` | 免认证路径（逗号分隔） |
-| `AUTH_ACCOUNTS` | *(无)* | `用户:{bcrypt}哈希,...` |
 | `TOKEN_SECRET` | *(随机，会警告)* | JWT 签名密钥 |
 | `TOKEN_EXPIRE_HOURS` | `24` | JWT 有效期（小时） |
 

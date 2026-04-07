@@ -251,7 +251,7 @@ Primary configuration file for API server. Key sections:
 - Storage backends (connection strings via environment variables)
 - Query parameters (TOP_K, MAX_TOTAL_TOKENS, etc.)
 - Reranking configuration (RERANK_BINDING, RERANK_MODEL)
-- Authentication (AUTH_ACCOUNTS, LIGHTRAG_API_KEY)
+- Authentication (TOKEN_SECRET, LIGHTRAG_API_KEY)
 
 See `env.example` for comprehensive template.
 

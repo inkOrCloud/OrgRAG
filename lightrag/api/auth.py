@@ -24,14 +24,54 @@ class TokenPayload(BaseModel):
 
 
 class AuthHandler:
-    def __init__(self):
-        self.secret = global_args.token_secret
-        if self.secret == "lightrag-jwt-default-secret-key!":
-            logger.warning(
-                "Using default TOKEN_SECRET. Please set a unique TOKEN_SECRET in your .env file for better security."
-            )
-        self.algorithm = global_args.jwt_algorithm
-        self.expire_hours = global_args.token_expire_hours
+    """JWT auth handler.
+
+    Configuration is read lazily from ``global_args`` on first property access
+    so that merely importing this module (and constructing the singleton below)
+    does NOT trigger ``parse_args()`` / ``initialize_config()``.  This lets
+    CLI sub-commands such as ``reset-password`` import safely without argparse
+    rejecting their own arguments.
+    """
+
+    # Cached values – None means "not yet read from global_args"
+    _secret: Optional[str] = None
+    _algorithm: Optional[str] = None
+    _expire_hours: Optional[int] = None
+
+    @property
+    def secret(self) -> str:
+        if self._secret is None:
+            self._secret = global_args.token_secret
+            if self._secret == "lightrag-jwt-default-secret-key!":
+                logger.warning(
+                    "Using default TOKEN_SECRET. Please set a unique TOKEN_SECRET "
+                    "in your .env file for better security."
+                )
+        return self._secret
+
+    @secret.setter
+    def secret(self, value: str) -> None:
+        self._secret = value
+
+    @property
+    def algorithm(self) -> str:
+        if self._algorithm is None:
+            self._algorithm = global_args.jwt_algorithm
+        return self._algorithm
+
+    @algorithm.setter
+    def algorithm(self, value: str) -> None:
+        self._algorithm = value
+
+    @property
+    def expire_hours(self) -> int:
+        if self._expire_hours is None:
+            self._expire_hours = global_args.token_expire_hours
+        return self._expire_hours
+
+    @expire_hours.setter
+    def expire_hours(self, value: int) -> None:
+        self._expire_hours = value
 
     def create_token(
         self,

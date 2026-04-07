@@ -1969,7 +1969,7 @@ collect_ssl_config() {
 collect_security_config() {
   local required="${1:-no}"
   local default_yes="${2:-no}"
-  local auth_accounts token_secret token_expire api_key whitelist
+  local token_secret token_expire api_key whitelist
   local confirm_result=1
   local whitelist_default=""
   local whitelist_is_set="no"
@@ -1991,7 +1991,7 @@ collect_security_config() {
 
   if ((confirm_result != 0)); then
     if [[ "$required" == "yes" ]]; then
-      echo "Warning: production deployments should configure AUTH_ACCOUNTS; API keys are optional on top." >&2
+      echo "Warning: production deployments should configure a TOKEN_SECRET and/or LIGHTRAG_API_KEY." >&2
     fi
     return
   fi
@@ -2004,7 +2004,6 @@ collect_security_config() {
     whitelist_default="/health"
   fi
 
-  auth_accounts="$(prompt_clearable_with_default "Auth accounts (user:pass,comma-separated)" "${ENV_VALUES[AUTH_ACCOUNTS]:-}")"
   token_secret="$(prompt_clearable_secret_with_default "JWT token secret: " "${ENV_VALUES[TOKEN_SECRET]:-}")"
   token_expire="$(prompt_clearable_with_default "Token expire hours" "${ENV_VALUES[TOKEN_EXPIRE_HOURS]:-48}")"
   api_key="$(prompt_clearable_secret_with_default "LightRAG API key: " "${ENV_VALUES[LIGHTRAG_API_KEY]:-}")"
@@ -2018,7 +2017,6 @@ collect_security_config() {
     log_info "Generated TOKEN_SECRET and saved to .env."
   fi
 
-  apply_clearable_env_value "AUTH_ACCOUNTS" "$auth_accounts"
   apply_clearable_env_value "TOKEN_SECRET" "$token_secret"
   apply_clearable_env_value "TOKEN_EXPIRE_HOURS" "$token_expire"
   apply_clearable_env_value "LIGHTRAG_API_KEY" "$api_key"
@@ -2602,10 +2600,7 @@ finalize_server_setup() {
     return 1
   fi
 
-  if ! validate_security_config \
-    "${ENV_VALUES[AUTH_ACCOUNTS]:-}" \
-    "${ENV_VALUES[TOKEN_SECRET]:-}" \
-    "${ENV_VALUES[LIGHTRAG_API_KEY]:-}"; then
+  if ! validate_security_config "${ENV_VALUES[TOKEN_SECRET]:-}"; then
     return 1
   fi
 
@@ -2784,10 +2779,7 @@ validate_env_file() {
     errors=1
   fi
 
-  if ! validate_security_config \
-    "${ENV_VALUES[AUTH_ACCOUNTS]:-}" \
-    "${ENV_VALUES[TOKEN_SECRET]:-}" \
-    "${ENV_VALUES[LIGHTRAG_API_KEY]:-}"; then
+  if ! validate_security_config "${ENV_VALUES[TOKEN_SECRET]:-}"; then
     errors=1
   fi
 
@@ -2869,7 +2861,6 @@ report_security_issue() {
 security_check_env_file() {
   local env_file="${REPO_ROOT}/.env"
   local findings=0
-  local auth_accounts=""
   local token_secret=""
   local api_key=""
   local whitelist_paths=""
@@ -2892,7 +2883,6 @@ security_check_env_file() {
     return 1
   fi
 
-  auth_accounts="${ENV_VALUES[AUTH_ACCOUNTS]:-}"
   token_secret="${ENV_VALUES[TOKEN_SECRET]:-}"
   api_key="${ENV_VALUES[LIGHTRAG_API_KEY]:-}"
   kv="${ENV_VALUES[LIGHTRAG_KV_STORAGE]:-}"
@@ -2938,51 +2928,22 @@ security_check_env_file() {
     findings=$((findings + 1))
   fi
 
-  if [[ -z "$auth_accounts" && -z "$api_key" ]]; then
+  # Flag when neither JWT configuration nor an API key provides any protection.
+  if [[ -z "$token_secret" && -z "$api_key" ]]; then
     report_security_issue \
       "No API protection is configured." \
-      "Set AUTH_ACCOUNTS and TOKEN_SECRET, add LIGHTRAG_API_KEY, or put the service behind a trusted reverse proxy."
+      "Set TOKEN_SECRET and configure user accounts, add LIGHTRAG_API_KEY, or put the service behind a trusted reverse proxy."
     findings=$((findings + 1))
   fi
 
-  if [[ -n "$auth_accounts" ]]; then
-    if ! validate_auth_accounts_format "$auth_accounts"; then
-      report_security_issue \
-        "AUTH_ACCOUNTS is malformed." \
-        "Use comma-separated user:password pairs such as admin:{bcrypt}<hash> or admin:secret,reader:another-secret."
-      findings=$((findings + 1))
-    elif ! validate_auth_accounts_password_safety "$auth_accounts"; then
-      report_security_issue \
-        "AUTH_ACCOUNTS uses a predictable password prefix." \
-        "Passwords must not start with 'admin' or 'pass'. Choose a stronger password or use lightrag-hash-password."
-      findings=$((findings + 1))
-    fi
-
-    if [[ -z "$token_secret" ]]; then
-      report_security_issue \
-        "AUTH_ACCOUNTS is set but TOKEN_SECRET is missing." \
-        "Set a non-empty JWT signing secret before enabling account-based authentication."
-      findings=$((findings + 1))
-    elif [[ "$token_secret" == "lightrag-jwt-default-secret" ]]; then
-      report_security_issue \
-        "TOKEN_SECRET still uses the built-in default value." \
-        "Generate a unique JWT signing secret and update TOKEN_SECRET."
-      findings=$((findings + 1))
-    fi
-
-    effective_whitelist="$whitelist_paths"
-    if [[ "$whitelist_is_set" != "yes" ]]; then
-      effective_whitelist="/health,/api/*"
-    fi
-    if whitelist_exposes_api_routes "$effective_whitelist"; then
-      report_security_issue \
-        "WHITELIST_PATHS exposes /api routes while AUTH_ACCOUNTS is enabled." \
-        "Use a minimal whitelist such as /health,/docs and keep /api routes authenticated."
-      findings=$((findings + 1))
-    fi
+  if [[ -n "$token_secret" && "$token_secret" == "lightrag-jwt-default-secret-key!" ]]; then
+    report_security_issue \
+      "TOKEN_SECRET still uses the built-in default value." \
+      "Generate a unique JWT signing secret and update TOKEN_SECRET."
+    findings=$((findings + 1))
   fi
 
-  if [[ -z "$auth_accounts" && -n "$api_key" ]]; then
+  if [[ -n "$api_key" ]]; then
     effective_whitelist="$whitelist_paths"
     if [[ "$whitelist_is_set" != "yes" ]]; then
       effective_whitelist="/health,/api/*"

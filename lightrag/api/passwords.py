@@ -11,16 +11,15 @@ def hash_password(password: str) -> str:
 
 
 def verify_password(plain_password: str, stored_password: str) -> bool:
-    """Verify a plaintext password against a stored password spec."""
-    if stored_password.startswith(BCRYPT_PASSWORD_PREFIX):
-        hashed_password = stored_password[len(BCRYPT_PASSWORD_PREFIX) :]
-        if not hashed_password:
-            return False
-        try:
-            return bcrypt.checkpw(
-                plain_password.encode("utf-8"), hashed_password.encode("utf-8")
-            )
-        except ValueError:
-            return False
-
-    return stored_password == plain_password
+    """Verify a plaintext password against a bcrypt-hashed stored password."""
+    if not stored_password.startswith(BCRYPT_PASSWORD_PREFIX):
+        return False
+    hashed_password = stored_password[len(BCRYPT_PASSWORD_PREFIX):]
+    if not hashed_password:
+        return False
+    try:
+        return bcrypt.checkpw(
+            plain_password.encode("utf-8"), hashed_password.encode("utf-8")
+        )
+    except ValueError:
+        return False
