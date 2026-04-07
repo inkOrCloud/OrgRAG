@@ -12,6 +12,7 @@ The LightRAG API server is a FastAPI application that exposes all LightRAG capab
 
 - [Installation](#installation)
 - [Configuration](#configuration)
+  - [MinerU Document Parsing](#mineru-document-parsing)
 - [Starting the Server](#starting-the-server)
 - [Authentication](#authentication)
 - [Multi-Knowledge-Base](#multi-knowledge-base)
@@ -84,6 +85,41 @@ EMBEDDING_MODEL=bge-m3:latest
 EMBEDDING_DIM=1024
 EMBEDDING_BINDING_HOST=http://localhost:11434
 ```
+
+### MinerU Document Parsing
+
+[MinerU](https://github.com/opendatalab/MinerU) is a high-accuracy document parsing service that converts PDF and image files into Markdown using layout analysis, OCR, and optional VLM backends. When enabled, MinerU takes priority over Docling/DEFAULT for PDF, DOCX, PPTX, XLSX, and all image formats.
+
+> **Note**: Image files (`.png` `.jpg` `.jpeg` `.bmp` `.tiff` `.gif` `.webp`) are **only** supported through MinerU; other engines cannot parse raw image files.
+
+**Quick start:**
+
+1. Deploy the MinerU WebAPI service — see [MinerU documentation](https://github.com/opendatalab/MinerU)
+2. Add the following to your `.env`:
+
+```env
+MINERU_ENABLED=true
+MINERU_BASE_URL=http://<your-mineru-host>:28080
+```
+
+3. Restart `lightrag-server`
+
+**Call modes** (`MINERU_MODE`):
+
+| Mode | Description |
+|------|-------------|
+| `sync` | `POST /file_parse` — single request, blocks until done. Simple and reliable for files < ~50 MB. |
+| `async` | `POST /tasks` + polling `GET /tasks/{id}` — better for large files or slow networks. |
+
+**Parsing backends** (`MINERU_BACKEND`):
+
+| Value | Description |
+|-------|-------------|
+| `pipeline` | General-purpose, multi-language, hallucination-free |
+| `vlm-auto-engine` | High accuracy via local GPU (Chinese + English only) |
+| `vlm-http-client` | High accuracy via remote VLM server (Chinese + English only) |
+| `hybrid-auto-engine` | Next-gen high accuracy via local GPU, multi-language **(default)** |
+| `hybrid-http-client` | High accuracy via remote VLM + local layout, multi-language |
 
 ---
 
@@ -1416,6 +1452,23 @@ Ollama chat completion — routes through LightRAG query engine.
 | `MAX_PARALLEL_INSERT` | `2` | Files processed in parallel (2–10 recommended) |
 | `ENABLE_LLM_CACHE_FOR_EXTRACT` | `true` | Cache entity extraction LLM calls |
 | `SUMMARY_LANGUAGE` | `English` | Language for entity summaries |
+
+### MinerU
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `MINERU_ENABLED` | `false` | Enable MinerU document parsing engine |
+| `MINERU_BASE_URL` | `http://localhost:28080` | MinerU service base URL (no trailing slash) |
+| `MINERU_MODE` | `sync` | Call mode: `sync` (single request) or `async` (polling, better for large files) |
+| `MINERU_BACKEND` | `hybrid-auto-engine` | Parsing backend — see [MinerU Document Parsing](#mineru-document-parsing) |
+| `MINERU_PARSE_METHOD` | `auto` | PDF parse method hint: `auto` / `txt` (digital PDF) / `ocr` (scanned PDF) |
+| `MINERU_LANG_LIST` | `ch` | Comma-separated OCR language codes, e.g. `ch,en` |
+| `MINERU_FORMULA_ENABLE` | `true` | Enable formula recognition |
+| `MINERU_TABLE_ENABLE` | `true` | Enable table recognition |
+| `MINERU_TIMEOUT` | `300` | Sync mode HTTP timeout in seconds (increase for large files) |
+| `MINERU_ASYNC_POLL_INTERVAL` | `2.0` | Async mode: seconds between status poll requests |
+| `MINERU_ASYNC_MAX_WAIT` | `600` | Async mode: maximum total wait time in seconds |
+| `MINERU_FALLBACK_ON_ERROR` | `true` | Fall back to local engine (pypdf/Docling) on MinerU error |
 
 ---
 

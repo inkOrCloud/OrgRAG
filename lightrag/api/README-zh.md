@@ -12,6 +12,7 @@ LightRAG API 服务器是一个 FastAPI 应用，通过 REST API 暴露 LightRAG
 
 - [安装](#安装)
 - [配置](#配置)
+  - [MinerU 文档解析](#mineru-文档解析)
 - [启动服务器](#启动服务器)
 - [认证机制](#认证机制)
 - [多知识库](#多知识库)
@@ -85,6 +86,41 @@ EMBEDDING_MODEL=bge-m3:latest
 EMBEDDING_DIM=1024
 EMBEDDING_BINDING_HOST=http://localhost:11434
 ```
+
+### MinerU 文档解析
+
+[MinerU](https://github.com/opendatalab/MinerU) 是一个高精度文档解析服务，通过版面分析、OCR 及可选的 VLM 后端将 PDF 和图片文件转换为 Markdown。启用后，MinerU 对 PDF、DOCX、PPTX、XLSX 及所有图片格式的优先级高于 Docling/DEFAULT 引擎。
+
+> **注意**：图片文件（`.png` `.jpg` `.jpeg` `.bmp` `.tiff` `.gif` `.webp`）**只能**通过 MinerU 解析，其他引擎无法处理原始图片文件。
+
+**快速开始：**
+
+1. 部署 MinerU WebAPI 服务 — 参见 [MinerU 文档](https://github.com/opendatalab/MinerU)
+2. 在 `.env` 中添加以下配置：
+
+```env
+MINERU_ENABLED=true
+MINERU_BASE_URL=http://<MinerU服务地址>:28080
+```
+
+3. 重启 `lightrag-server`
+
+**调用模式**（`MINERU_MODE`）：
+
+| 模式 | 说明 |
+|------|------|
+| `sync` | `POST /file_parse` — 单次请求阻塞等待，简单可靠，适合 ~50 MB 以内的文件 |
+| `async` | `POST /tasks` + 轮询 `GET /tasks/{id}` — 适合大文件或网络较慢的场景 |
+
+**解析后端**（`MINERU_BACKEND`）：
+
+| 值 | 说明 |
+|----|------|
+| `pipeline` | 通用多语言，无幻觉风险 |
+| `vlm-auto-engine` | 本地 GPU 高精度（仅支持中英文） |
+| `vlm-http-client` | 远程 VLM 服务器高精度（仅支持中英文） |
+| `hybrid-auto-engine` | 新一代本地 GPU 高精度，多语言支持 **（默认）** |
+| `hybrid-http-client` | 远程 VLM + 本地版面分析，多语言支持 |
 
 ---
 
@@ -1091,6 +1127,23 @@ Ollama 聊天补全接口 — 通过 LightRAG 查询引擎处理。
 | `MAX_PARALLEL_INSERT` | `2` | 并行处理文件数（建议 2–10） |
 | `ENABLE_LLM_CACHE_FOR_EXTRACT` | `true` | 缓存实体提取 LLM 调用 |
 | `SUMMARY_LANGUAGE` | `English` | 实体摘要语言 |
+
+### MinerU
+
+| 变量 | 默认值 | 说明 |
+|------|--------|------|
+| `MINERU_ENABLED` | `false` | 是否启用 MinerU 文档解析引擎 |
+| `MINERU_BASE_URL` | `http://localhost:28080` | MinerU 服务地址（无需结尾斜杠） |
+| `MINERU_MODE` | `sync` | 调用模式：`sync`（单次请求）或 `async`（轮询，适合大文件） |
+| `MINERU_BACKEND` | `hybrid-auto-engine` | 解析后端 — 参见 [MinerU 文档解析](#mineru-文档解析) |
+| `MINERU_PARSE_METHOD` | `auto` | PDF 解析方式：`auto` / `txt`（数字 PDF）/ `ocr`（扫描件） |
+| `MINERU_LANG_LIST` | `ch` | 逗号分隔的 OCR 语言列表，如 `ch,en` |
+| `MINERU_FORMULA_ENABLE` | `true` | 是否启用公式识别 |
+| `MINERU_TABLE_ENABLE` | `true` | 是否启用表格识别 |
+| `MINERU_TIMEOUT` | `300` | Sync 模式 HTTP 超时（秒），大文件可适当增大 |
+| `MINERU_ASYNC_POLL_INTERVAL` | `2.0` | Async 模式轮询间隔（秒） |
+| `MINERU_ASYNC_MAX_WAIT` | `600` | Async 模式最大等待时间（秒） |
+| `MINERU_FALLBACK_ON_ERROR` | `true` | 出错时是否回退到本地引擎（pypdf/Docling） |
 
 ---
 
