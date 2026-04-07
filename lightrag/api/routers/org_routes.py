@@ -97,7 +97,7 @@ async def get_my_org(current_user: dict = Security(get_current_user)):
     db = get_kb_db()
     membership = await db.get_user_org(current_user["username"])
     if not membership:
-        return {"membership": None}
+        return {"membership": None, "org": None}
     org = await db.get_org_by_id(membership.org_id)
     return {"membership": membership.to_dict(), "org": org.to_dict() if org else None}
 

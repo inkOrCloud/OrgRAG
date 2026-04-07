@@ -8,6 +8,7 @@ import type {
   HealthStatus,
   PaginatedDocsResponse,
   DocActionResponse,
+  DeleteDocResponse,
   QueryRequest,
   QueryResponse,
   GraphData,
@@ -230,28 +231,28 @@ export async function uploadDocuments(files: File[]): Promise<DocActionResponse>
 
 export async function insertText(
   text: string,
-  id?: string
+  file_source?: string
 ): Promise<DocActionResponse> {
   const { data } = await axiosInstance.post<DocActionResponse>('/documents/text', {
     text,
-    id,
+    file_source,
   })
   return data
 }
 
 export async function insertTexts(
   texts: string[],
-  ids?: string[]
+  file_sources?: string[]
 ): Promise<DocActionResponse> {
   const { data } = await axiosInstance.post<DocActionResponse>('/documents/texts', {
     texts,
-    ids,
+    file_sources,
   })
   return data
 }
 
-export async function deleteDocument(docId: string): Promise<DocActionResponse> {
-  const { data } = await axiosInstance.delete<DocActionResponse>(
+export async function deleteDocument(docId: string): Promise<DeleteDocResponse> {
+  const { data } = await axiosInstance.delete<DeleteDocResponse>(
     `/documents/delete_document`,
     { data: { doc_ids: [docId], delete_file: false, delete_llm_cache: false } }
   )
@@ -263,8 +264,8 @@ export async function getDocumentContent(docId: string): Promise<DocContentRespo
   return data
 }
 
-export async function deleteDocuments(docIds: string[]): Promise<DocActionResponse> {
-  const { data } = await axiosInstance.delete<DocActionResponse>(
+export async function deleteDocuments(docIds: string[]): Promise<DeleteDocResponse> {
+  const { data } = await axiosInstance.delete<DeleteDocResponse>(
     `/documents/delete_document`,
     { data: { doc_ids: docIds, delete_file: false, delete_llm_cache: false } }
   )
@@ -407,18 +408,18 @@ export async function checkEntityExists(name: string): Promise<boolean> {
 export async function deleteEntity(entityName: string): Promise<DocActionResponse> {
   const { data } = await axiosInstance.delete<DocActionResponse>(
     '/documents/delete_entity',
-    { params: { entity_name: entityName } }
+    { data: { entity_name: entityName } }
   )
   return data
 }
 
 export async function deleteRelation(
-  sourceId: string,
-  targetId: string
+  sourceEntity: string,
+  targetEntity: string
 ): Promise<DocActionResponse> {
   const { data } = await axiosInstance.delete<DocActionResponse>(
     '/documents/delete_relation',
-    { params: { source_id: sourceId, target_id: targetId } }
+    { data: { source_entity: sourceEntity, target_entity: targetEntity } }
   )
   return data
 }

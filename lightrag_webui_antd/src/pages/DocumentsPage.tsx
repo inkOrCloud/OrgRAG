@@ -65,6 +65,7 @@ import 'github-markdown-css/github-markdown.css'
 marked.use({ breaks: true, gfm: true })
 import { useKBStore } from '@/stores/kb'
 import { useAuthStore } from '@/stores/auth'
+import { useSettingsStore } from '@/stores/settings'
 
 const { Title, Text } = Typography
 const { Dragger } = Upload
@@ -113,6 +114,7 @@ export default function DocumentsPage() {
   const isAdmin = useAuthStore((s) => s.isAdmin())
   // Admin always has write access; non-admin depends on KB's can_write field
   const canWrite = isAdmin || (currentKB?.can_write ?? false)
+  const isDark = useSettingsStore((s) => s.isDark)
 
   const [docs, setDocs] = useState<DocStatusResponse[]>([])
   const [loading, setLoading] = useState(false)
@@ -769,8 +771,20 @@ export default function DocumentsPage() {
         ) : docContent ? (
           <div
             className="markdown-body"
-            data-color-mode="light"
-            style={{ lineHeight: 1.8, fontSize: 14, boxSizing: 'border-box' }}
+            style={{
+              lineHeight: 1.8,
+              fontSize: 14,
+              boxSizing: 'border-box',
+              // Override github-markdown-css OS-based media query vars to match app theme.
+              // The CSS uses @media(prefers-color-scheme) on .markdown-body directly,
+              // so data-color-mode has no effect; we must override the variables inline.
+              ...({
+                '--bgColor-default': isDark ? '#0d1117' : '#ffffff',
+                '--fgColor-default': isDark ? '#f0f6fc' : '#1f2328',
+                '--bgColor-muted': isDark ? '#151b23' : '#f6f8fa',
+                '--borderColor-default': isDark ? '#3d444d' : '#d1d9e0',
+              } as React.CSSProperties),
+            }}
             dangerouslySetInnerHTML={{ __html: marked.parse(docContent.content) as string }}
           />
         ) : null}

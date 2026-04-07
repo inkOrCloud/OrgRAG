@@ -165,6 +165,13 @@ export interface DocActionResponse {
   track_id?: string
 }
 
+/** Response from DELETE /documents/delete_document */
+export interface DeleteDocResponse {
+  status: 'deletion_started' | 'busy' | 'not_allowed'
+  message: string
+  doc_id: string
+}
+
 export interface GraphNode {
   id: string
   labels: string[]

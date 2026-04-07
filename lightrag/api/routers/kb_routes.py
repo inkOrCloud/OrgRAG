@@ -175,6 +175,7 @@ async def create_kb(
     d = kb.to_dict()
     d["loaded"] = True
     d["is_default"] = False
+    d["can_write"] = True
     return {"kb": d, "message": "Knowledge base created successfully"}
 
 
@@ -539,5 +540,6 @@ async def import_kb(
     d = kb.to_dict()
     d["loaded"] = True
     d["is_default"] = False
+    d["can_write"] = True
     return {"kb": d, "message": f"Knowledge base '{kb.name}' imported successfully"}
 
