@@ -632,6 +632,46 @@ Requires `DOCUMENT_LOADING_ENGINE=DOCLING`. Enables VLM-assisted parsing of embe
 
 Each KB can override any of these settings individually through the Knowledge Base settings UI or the `PUT /kbs/{kb_id}/settings` API. Per-KB values take precedence over the global environment config.
 
+### MinerU WebAPI (High-Accuracy Document Parsing)
+
+[MinerU](https://github.com/opendatalab/MinerU) is an alternative document parsing engine that converts PDF and image files to Markdown using layout analysis, OCR, and optional VLM backends. When enabled, MinerU takes priority over Docling/PYPDF for supported file types.
+
+> **Note**: Image files (`.png` `.jpg` `.jpeg` `.bmp` `.tiff` `.gif` `.webp`) are **only** supported through MinerU; other engines cannot parse raw image files.
+
+**Quick start**: deploy the MinerU WebAPI service, then add to `.env`:
+
+```env
+MINERU_ENABLED=true
+MINERU_BASE_URL=http://<your-mineru-host>:28080
+```
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `MINERU_ENABLED` | `false` | Enable MinerU document parsing engine |
+| `MINERU_BASE_URL` | `http://localhost:28080` | MinerU service base URL (no trailing slash) |
+| `MINERU_MODE` | `sync` | Call mode: `sync` (single request) or `async` (polling, better for large files) |
+| `MINERU_BACKEND` | `hybrid-auto-engine` | Parsing backend (see below) |
+| `MINERU_PARSE_METHOD` | `auto` | PDF parse method: `auto` / `txt` (digital PDF) / `ocr` (scanned PDF) |
+| `MINERU_LANG_LIST` | `ch` | Comma-separated OCR language codes, e.g. `ch,en` |
+| `MINERU_FORMULA_ENABLE` | `true` | Enable formula recognition |
+| `MINERU_TABLE_ENABLE` | `true` | Enable table recognition |
+| `MINERU_TIMEOUT` | `300` | Sync mode HTTP timeout in seconds (increase for large files) |
+| `MINERU_ASYNC_POLL_INTERVAL` | `2.0` | Async mode: seconds between status poll requests |
+| `MINERU_ASYNC_MAX_WAIT` | `600` | Async mode: maximum total wait time in seconds |
+| `MINERU_FALLBACK_ON_ERROR` | `true` | Fall back to local engine (pypdf/Docling) on MinerU error |
+
+**`MINERU_BACKEND` values:**
+
+| Value | Description |
+|-------|-------------|
+| `pipeline` | General-purpose, multi-language, hallucination-free |
+| `vlm-auto-engine` | High accuracy via local GPU (Chinese + English only) |
+| `vlm-http-client` | High accuracy via remote VLM server (Chinese + English only) |
+| `hybrid-auto-engine` | Next-gen high accuracy via local GPU, multi-language **(default)** |
+| `hybrid-http-client` | High accuracy via remote VLM + local layout, multi-language |
+
+Per-KB overrides are supported via the Knowledge Base settings UI or `PUT /kbs/{kb_id}/settings`.
+
 ---
 
 ## License
