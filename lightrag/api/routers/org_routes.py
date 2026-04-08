@@ -20,13 +20,13 @@ from pydantic import BaseModel, field_validator
 from sqlite3 import IntegrityError
 
 from lightrag.api.kb_db import get_kb_db
-from lightrag.api.auth import get_current_user, require_admin
-from lightrag.utils import logger
+from lightrag.api.auth import get_current_user
 
 router = APIRouter(prefix="/orgs", tags=["Organization Management"])
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 async def _can_manage_org(current_user: dict, org_id: str) -> bool:
     """Return True if the user may manage the given org.
@@ -48,6 +48,7 @@ async def _can_manage_org(current_user: dict, org_id: str) -> bool:
 
 
 # ── Request Schemas ───────────────────────────────────────────────────────────
+
 
 class OrgCreateRequest(BaseModel):
     name: str
@@ -84,6 +85,7 @@ class OrgMemberRoleRequest(BaseModel):
 
 
 # ── Routes: Org CRUD ──────────────────────────────────────────────────────────
+
 
 @router.get("", summary="Get full organization tree")
 async def get_org_tree(current_user: dict = Security(get_current_user)):
@@ -129,7 +131,9 @@ async def get_my_org(current_user: dict = Security(get_current_user)):
         409: {"description": "Organization name already exists"},
     },
 )
-async def create_org(body: OrgCreateRequest, current_user: dict = Security(get_current_user)):
+async def create_org(
+    body: OrgCreateRequest, current_user: dict = Security(get_current_user)
+):
     db = get_kb_db()
     # Check permission: system admin or org-admin who can manage the parent
     if body.parent_id:
@@ -142,8 +146,9 @@ async def create_org(body: OrgCreateRequest, current_user: dict = Security(get_c
         raise HTTPException(status_code=403, detail="只有系统管理员可以创建根组织")
 
     try:
-        org = await db.create_org(name=body.name, parent_id=body.parent_id,
-                                  description=body.description)
+        org = await db.create_org(
+            name=body.name, parent_id=body.parent_id, description=body.description
+        )
     except IntegrityError:
         raise HTTPException(status_code=409, detail=f"组织名 '{body.name}' 已存在")
     return {"org": org.to_dict(), "message": "组织创建成功"}
@@ -160,8 +165,9 @@ async def get_org(org_id: str, current_user: dict = Security(get_current_user)):
 
 
 @router.put("/{org_id}", summary="Update org")
-async def update_org(org_id: str, body: OrgUpdateRequest,
-                     current_user: dict = Security(get_current_user)):
+async def update_org(
+    org_id: str, body: OrgUpdateRequest, current_user: dict = Security(get_current_user)
+):
     if not await _can_manage_org(current_user, org_id):
         raise HTTPException(status_code=403, detail="无权修改该组织")
     db = get_kb_db()
@@ -190,6 +196,7 @@ async def delete_org(org_id: str, current_user: dict = Security(get_current_user
 
 
 # ── Routes: Member Management ─────────────────────────────────────────────────
+
 
 @router.get("/{org_id}/members", summary="List org members")
 async def list_members(org_id: str, current_user: dict = Security(get_current_user)):
@@ -225,8 +232,11 @@ async def list_members(org_id: str, current_user: dict = Security(get_current_us
         404: {"description": "Organization or user not found"},
     },
 )
-async def add_member(org_id: str, body: OrgMemberAddRequest,
-                     current_user: dict = Security(get_current_user)):
+async def add_member(
+    org_id: str,
+    body: OrgMemberAddRequest,
+    current_user: dict = Security(get_current_user),
+):
     if not await _can_manage_org(current_user, org_id):
         raise HTTPException(status_code=403, detail="无权管理该组织成员")
     db = get_kb_db()
@@ -234,6 +244,7 @@ async def add_member(org_id: str, body: OrgMemberAddRequest,
         raise HTTPException(status_code=404, detail="组织不存在")
     # Verify the user exists
     from lightrag.api.user_db import get_user_db
+
     if not await get_user_db().get_user_by_username(body.username):
         raise HTTPException(status_code=404, detail=f"用户 '{body.username}' 不存在")
     result = await db.add_org_member(org_id, body.username, body.role)
@@ -243,8 +254,12 @@ async def add_member(org_id: str, body: OrgMemberAddRequest,
 
 
 @router.put("/{org_id}/members/{username}", summary="Update member role")
-async def update_member_role(org_id: str, username: str, body: OrgMemberRoleRequest,
-                              current_user: dict = Security(get_current_user)):
+async def update_member_role(
+    org_id: str,
+    username: str,
+    body: OrgMemberRoleRequest,
+    current_user: dict = Security(get_current_user),
+):
     if not await _can_manage_org(current_user, org_id):
         raise HTTPException(status_code=403, detail="无权管理该组织成员")
     db = get_kb_db()
@@ -255,8 +270,9 @@ async def update_member_role(org_id: str, username: str, body: OrgMemberRoleRequ
 
 
 @router.delete("/{org_id}/members/{username}", summary="Remove member from org")
-async def remove_member(org_id: str, username: str,
-                        current_user: dict = Security(get_current_user)):
+async def remove_member(
+    org_id: str, username: str, current_user: dict = Security(get_current_user)
+):
     if not await _can_manage_org(current_user, org_id):
         raise HTTPException(status_code=403, detail="无权管理该组织成员")
     db = get_kb_db()
@@ -268,9 +284,10 @@ async def remove_member(org_id: str, username: str,
 
 # ── KB Operation Permissions (Phase C) ────────────────────────────────────────
 
+
 class KBPermissionRequest(BaseModel):
     username: str
-    permission: str   # 'read' | 'write'
+    permission: str  # 'read' | 'write'
 
     @field_validator("permission")
     @classmethod
@@ -280,8 +297,12 @@ class KBPermissionRequest(BaseModel):
         return v
 
 
-@router.get("/{org_id}/kb-permissions", summary="List KB operation permissions for org members")
-async def list_kb_permissions(org_id: str, current_user: dict = Security(get_current_user)):
+@router.get(
+    "/{org_id}/kb-permissions", summary="List KB operation permissions for org members"
+)
+async def list_kb_permissions(
+    org_id: str, current_user: dict = Security(get_current_user)
+):
     """Return {username: ['read','write',...]} for all members of this org."""
     db = get_kb_db()
     if not await db.get_org_by_id(org_id):
@@ -311,31 +332,47 @@ async def list_kb_permissions(org_id: str, current_user: dict = Security(get_cur
         404: {"description": "Organization or user not found"},
     },
 )
-async def grant_kb_permission(org_id: str, body: KBPermissionRequest,
-                               current_user: dict = Security(get_current_user)):
+async def grant_kb_permission(
+    org_id: str,
+    body: KBPermissionRequest,
+    current_user: dict = Security(get_current_user),
+):
     if not await _can_manage_org(current_user, org_id):
         raise HTTPException(status_code=403, detail="无权管理该组织的KB权限")
     db = get_kb_db()
     # Target user must be a member of this org
     membership = await db.get_user_org(body.username)
     if not membership or membership.org_id != org_id:
-        raise HTTPException(status_code=400, detail=f"用户 '{body.username}' 不是该组织的成员")
-    result = await db.grant_kb_permission(body.username, body.permission, current_user["username"])
+        raise HTTPException(
+            status_code=400, detail=f"用户 '{body.username}' 不是该组织的成员"
+        )
+    result = await db.grant_kb_permission(
+        body.username, body.permission, current_user["username"]
+    )
     if not result["ok"]:
         raise HTTPException(status_code=409, detail=result["reason"])
     return {"message": f"已授予 '{body.username}' kb_{body.permission} 权限"}
 
 
-@router.delete("/{org_id}/kb-permissions/{username}/{permission}", summary="Revoke KB permission")
-async def revoke_kb_permission(org_id: str, username: str, permission: str,
-                                current_user: dict = Security(get_current_user)):
+@router.delete(
+    "/{org_id}/kb-permissions/{username}/{permission}", summary="Revoke KB permission"
+)
+async def revoke_kb_permission(
+    org_id: str,
+    username: str,
+    permission: str,
+    current_user: dict = Security(get_current_user),
+):
     if permission not in ("read", "write"):
-        raise HTTPException(status_code=400, detail="permission 必须为 'read' 或 'write'")
+        raise HTTPException(
+            status_code=400, detail="permission 必须为 'read' 或 'write'"
+        )
     if not await _can_manage_org(current_user, org_id):
         raise HTTPException(status_code=403, detail="无权管理该组织的KB权限")
     db = get_kb_db()
     removed = await db.revoke_kb_permission(username, permission)
     if not removed:
-        raise HTTPException(status_code=404, detail=f"用户 '{username}' 没有 {permission} 权限")
+        raise HTTPException(
+            status_code=404, detail=f"用户 '{username}' 没有 {permission} 权限"
+        )
     return {"message": f"已撤销 '{username}' 的 kb_{permission} 权限"}
-

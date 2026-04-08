@@ -22,6 +22,7 @@ from .passwords import hash_password, verify_password
 
 # ── Data Model ──────────────────────────────────────────────────────────────
 
+
 @dataclass
 class User:
     id: str
@@ -52,6 +53,7 @@ class User:
 
 # ── Database Manager ─────────────────────────────────────────────────────────
 
+
 class UserDB:
     """Async-compatible SQLite user database (uses asyncio.to_thread internally)."""
 
@@ -77,10 +79,14 @@ class UserDB:
                     updated_at TEXT NOT NULL
                 )
             """)
-            conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username)")
+            conn.execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username)"
+            )
             # Migration: add avatar_url column for existing databases
             try:
-                conn.execute("ALTER TABLE users ADD COLUMN avatar_url TEXT NOT NULL DEFAULT ''")
+                conn.execute(
+                    "ALTER TABLE users ADD COLUMN avatar_url TEXT NOT NULL DEFAULT ''"
+                )
             except Exception:
                 pass  # Column already exists
             conn.commit()
@@ -109,6 +115,7 @@ class UserDB:
         Create a default admin account (admin/admin) if no admin user exists in the DB.
         This is called at startup to guarantee at least one admin is always available.
         """
+
         def _has_admin() -> bool:
             with self._connect() as conn:
                 row = conn.execute(
@@ -142,15 +149,26 @@ class UserDB:
                 (user_id, username, email, hashed, role, now, now),
             )
             conn.commit()
-        return User(id=user_id, username=username, email=email, hashed_password=hashed,
-                    role=role, is_active=True, created_at=now, updated_at=now)
+        return User(
+            id=user_id,
+            username=username,
+            email=email,
+            hashed_password=hashed,
+            role=role,
+            is_active=True,
+            created_at=now,
+            updated_at=now,
+        )
 
-    async def create_user(self, username: str, password: str, role: str = "user",
-                          email: str = "") -> User:
+    async def create_user(
+        self, username: str, password: str, role: str = "user", email: str = ""
+    ) -> User:
         user_id = str(uuid.uuid4())
         hashed = hash_password(password)
         now = datetime.utcnow().isoformat()
-        return await asyncio.to_thread(self._do_create, user_id, username, email, hashed, role, now)
+        return await asyncio.to_thread(
+            self._do_create, user_id, username, email, hashed, role, now
+        )
 
     def _do_get_by_id(self, user_id: str) -> Optional[User]:
         with self._connect() as conn:
@@ -162,7 +180,9 @@ class UserDB:
 
     def _do_get_by_username(self, username: str) -> Optional[User]:
         with self._connect() as conn:
-            row = conn.execute("SELECT * FROM users WHERE username=?", (username,)).fetchone()
+            row = conn.execute(
+                "SELECT * FROM users WHERE username=?", (username,)
+            ).fetchone()
             return self._row_to_user(row) if row else None
 
     async def get_user_by_username(self, username: str) -> Optional[User]:
@@ -170,7 +190,9 @@ class UserDB:
 
     def _do_list(self) -> list:
         with self._connect() as conn:
-            rows = conn.execute("SELECT * FROM users ORDER BY created_at ASC").fetchall()
+            rows = conn.execute(
+                "SELECT * FROM users ORDER BY created_at ASC"
+            ).fetchall()
             return [self._row_to_user(r) for r in rows]
 
     async def list_users(self) -> list[User]:
@@ -206,10 +228,16 @@ class UserDB:
     async def delete_user(self, user_id: str):
         await asyncio.to_thread(self._do_delete, user_id)
 
-    async def verify_password(self, username: str, plain_password: str) -> Optional[User]:
+    async def verify_password(
+        self, username: str, plain_password: str
+    ) -> Optional[User]:
         """Return User if credentials valid, else None."""
         user = await self.get_user_by_username(username)
-        if user and user.is_active and verify_password(plain_password, user.hashed_password):
+        if (
+            user
+            and user.is_active
+            and verify_password(plain_password, user.hashed_password)
+        ):
             return user
         return None
 
@@ -232,6 +260,7 @@ def init_user_db(db_path: str) -> UserDB:
 
 
 # ── CLI: reset-password subcommand ───────────────────────────────────────────
+
 
 def reset_password_cmd(argv: list[str]) -> None:
     """Standalone reset-password logic, importable without triggering server init."""
@@ -272,4 +301,3 @@ def reset_password_cmd(argv: list[str]) -> None:
         print(f"Password for '{args.username}' has been reset successfully.")
 
     asyncio.run(_reset())
-

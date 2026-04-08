@@ -7069,9 +7069,9 @@ fi
     )
     values = parse_lines(output)
 
-    assert values["ABSENT"] == "yes"   # absent → no-op, allowed
-    assert values["CUSTOM"] == "yes"   # custom secret → OK
-    assert values["DEFAULT"] == "no"   # built-in default → rejected
+    assert values["ABSENT"] == "yes"  # absent → no-op, allowed
+    assert values["CUSTOM"] == "yes"  # custom secret → OK
+    assert values["DEFAULT"] == "no"  # built-in default → rejected
 
 
 def test_security_check_reports_missing_authentication(tmp_path: Path) -> None:

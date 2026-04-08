@@ -397,7 +397,7 @@ All query endpoints accept the same `QueryRequest` body.
 #### `POST /query`
 Non-streaming RAG query.
 
-**Auth**: Required  
+**Auth**: Required
 **KB routing**: `X-KB-ID` header (optional)
 
 **Request**: `QueryRequest` (the `stream` field is ignored)
@@ -416,7 +416,7 @@ Non-streaming RAG query.
 }
 ```
 
-`references` is `null` when `include_references=false`.  
+`references` is `null` when `include_references=false`.
 `content` array is present only when `include_chunk_content=true`.
 
 ---
@@ -424,7 +424,7 @@ Non-streaming RAG query.
 #### `POST /query/stream`
 Streaming RAG query (NDJSON / Server-Sent Events).
 
-**Auth**: Required  
+**Auth**: Required
 **KB routing**: `X-KB-ID` header (optional)
 
 **Request**: `QueryRequest`
@@ -444,7 +444,7 @@ Streaming RAG query (NDJSON / Server-Sent Events).
 #### `POST /query/data`
 Returns the raw retrieved context (entities, relations, chunks) without LLM generation. Always includes references.
 
-**Auth**: Required  
+**Auth**: Required
 **KB routing**: `X-KB-ID` header (optional)
 
 **Response** (`QueryDataResponse`):
@@ -486,7 +486,7 @@ Scan the input directory for new files and start indexing.
 #### `POST /documents/upload`
 Upload one or more files for indexing.
 
-**Auth**: Required  
+**Auth**: Required
 **Content-Type**: `multipart/form-data`
 
 **Form fields**:
@@ -742,7 +742,7 @@ Return the full text content of a document stored in the KV store.
 #### `GET /graphs`
 Retrieve a subgraph for visualization.
 
-**Auth**: Required  
+**Auth**: Required
 **KB routing**: `X-KB-ID` header
 
 **Query params**:
@@ -786,7 +786,7 @@ Search entity labels by keyword.
 #### `GET /graph/entity/exists`
 Check if an entity exists by name.
 
-**Auth**: Required  
+**Auth**: Required
 **Query params**: `entity_name` (string)
 
 ---
@@ -1031,7 +1031,7 @@ Import a KB from a previously exported ZIP archive.
 
 **Auth**: Required (admin)
 
-**Content-Type**: `multipart/form-data`  
+**Content-Type**: `multipart/form-data`
 **Form fields**: `file` (ZIP archive)
 
 **Response**: `201 Created` with new KB object.

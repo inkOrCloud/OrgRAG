@@ -13,11 +13,16 @@ Endpoints:
   DELETE /users/{id}         - delete user (admin)
 """
 
-import os
-import uuid as _uuid
 from pathlib import Path
 from typing import Optional
-from fastapi import APIRouter, HTTPException, status, Depends, Security, UploadFile, File
+from fastapi import (
+    APIRouter,
+    HTTPException,
+    status,
+    Security,
+    UploadFile,
+    File,
+)
 from pydantic import BaseModel, field_validator
 from sqlite3 import IntegrityError
 
@@ -42,10 +47,12 @@ def _avatars_dir() -> Path:
     d.mkdir(parents=True, exist_ok=True)
     return d
 
+
 router = APIRouter(prefix="/users", tags=["User Management"])
 
 
 # ── Request / Response Schemas ────────────────────────────────────────────────
+
 
 class UserCreateRequest(BaseModel):
     username: str
@@ -81,6 +88,7 @@ class ChangePasswordRequest(BaseModel):
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────
+
 
 @router.get("", summary="List all users (admin)")
 async def list_users(_: dict = Security(require_admin)):
@@ -122,7 +130,9 @@ async def create_user(
 ):
     db = get_user_db()
     if not body.username or not body.password:
-        raise HTTPException(status_code=400, detail="username and password are required")
+        raise HTTPException(
+            status_code=400, detail="username and password are required"
+        )
     try:
         user = await db.create_user(
             username=body.username,
@@ -131,7 +141,9 @@ async def create_user(
             email=body.email,
         )
     except IntegrityError:
-        raise HTTPException(status_code=409, detail=f"Username '{body.username}' already exists")
+        raise HTTPException(
+            status_code=409, detail=f"Username '{body.username}' already exists"
+        )
 
     return {"user": user.to_dict(), "message": "User created successfully"}
 
@@ -163,7 +175,9 @@ async def change_own_password(
     if not user:
         raise HTTPException(status_code=400, detail="Current password is incorrect")
     if len(body.new_password) < 6:
-        raise HTTPException(status_code=400, detail="New password must be at least 6 characters")
+        raise HTTPException(
+            status_code=400, detail="New password must be at least 6 characters"
+        )
     await db.update_user(user.id, password=body.new_password)
     return {"message": "Password updated successfully"}
 
@@ -282,4 +296,3 @@ async def delete_user(
         raise HTTPException(status_code=400, detail="Cannot delete your own account")
     await db.delete_user(user_id)
     return {"message": f"User '{existing.username}' deleted successfully"}
-

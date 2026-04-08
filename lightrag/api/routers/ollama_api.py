@@ -298,7 +298,9 @@ class OllamaAPI:
                     "required": True,
                     "content": {
                         "application/json": {
-                            "schema": {"$ref": "#/components/schemas/OllamaGenerateRequest"},
+                            "schema": {
+                                "$ref": "#/components/schemas/OllamaGenerateRequest"
+                            },
                             "example": {
                                 "model": "lightrag:latest",
                                 "prompt": "Why is the sky blue?",
@@ -510,11 +512,16 @@ class OllamaAPI:
                     "required": True,
                     "content": {
                         "application/json": {
-                            "schema": {"$ref": "#/components/schemas/OllamaChatRequest"},
+                            "schema": {
+                                "$ref": "#/components/schemas/OllamaChatRequest"
+                            },
                             "example": {
                                 "model": "lightrag:latest",
                                 "messages": [
-                                    {"role": "user", "content": "/mix What is LightRAG?"}
+                                    {
+                                        "role": "user",
+                                        "content": "/mix What is LightRAG?",
+                                    }
                                 ],
                                 "stream": True,
                             },

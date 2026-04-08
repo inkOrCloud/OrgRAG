@@ -393,9 +393,7 @@ def parse_args() -> argparse.Namespace:
     # for file types supported by MinerU (PDF and images).
     args.mineru_enabled = get_env_value("MINERU_ENABLED", False, bool)
     # Base URL of the MinerU WebAPI service (no trailing slash required).
-    args.mineru_base_url = get_env_value(
-        "MINERU_BASE_URL", "http://localhost:28080"
-    )
+    args.mineru_base_url = get_env_value("MINERU_BASE_URL", "http://localhost:28080")
     # Call mode: "sync" uses POST /file_parse (one request, blocks until done);
     #            "async" uses POST /tasks + polling (better for large files).
     args.mineru_mode = get_env_value("MINERU_MODE", "sync")

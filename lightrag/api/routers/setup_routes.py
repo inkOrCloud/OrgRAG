@@ -19,6 +19,7 @@ router = APIRouter(prefix="/setup", tags=["Setup"])
 
 # ── Request schema ─────────────────────────────────────────────────────────────
 
+
 class SetupRequest(BaseModel):
     # Admin account
     admin_username: str
@@ -64,6 +65,7 @@ class SetupRequest(BaseModel):
 
 # ── Routes ─────────────────────────────────────────────────────────────────────
 
+
 @router.get("/status", summary="Check if initial setup is required")
 async def get_setup_status():
     """
@@ -71,6 +73,7 @@ async def get_setup_status():
     This endpoint is always public (no authentication required).
     """
     from lightrag.api.kb_db import get_kb_db
+
     kb_db = get_kb_db()
     setup_done = await kb_db.is_setup_complete()
     return {"setup_required": not setup_done}
@@ -110,7 +113,9 @@ async def complete_setup(body: SetupRequest):
             email=body.admin_email,
         )
     except IntegrityError:
-        raise HTTPException(status_code=409, detail=f"用户名 '{body.admin_username}' 已存在")
+        raise HTTPException(
+            status_code=409, detail=f"用户名 '{body.admin_username}' 已存在"
+        )
 
     # 2. Create root organization
     org = await kb_db.create_org(

@@ -92,7 +92,11 @@ class AuthHandler:
         Returns:
             str: Encoded JWT token
         """
-        expire_hours = custom_expire_hours if custom_expire_hours is not None else self.expire_hours
+        expire_hours = (
+            custom_expire_hours
+            if custom_expire_hours is not None
+            else self.expire_hours
+        )
 
         expire = datetime.utcnow() + timedelta(hours=expire_hours)
 

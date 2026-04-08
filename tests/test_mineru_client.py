@@ -100,9 +100,7 @@ def test_extract_markdown_list_md_content():
 
 @pytest.mark.offline
 def test_extract_markdown_list_multiple_files():
-    result = _extract_markdown(
-        [{"md_content": "Part A"}, {"md_content": "Part B"}]
-    )
+    result = _extract_markdown([{"md_content": "Part A"}, {"md_content": "Part B"}])
     assert "Part A" in result
     assert "Part B" in result
 
@@ -134,9 +132,7 @@ def test_extract_markdown_mineru_307_results_format():
         "task_id": "c7bb8bcd",
         "status": "completed",
         "file_names": ["report"],
-        "results": {
-            "report": {"md_content": "# Hello MinerU"}
-        },
+        "results": {"report": {"md_content": "# Hello MinerU"}},
     }
     assert _extract_markdown(response) == "# Hello MinerU"
 
@@ -220,7 +216,9 @@ def test_mineru_config_defaults():
 async def test_health_check_ok():
     cfg = _make_cfg()
     mock_session = _make_mock_session(get=MagicMock(return_value=_mock_response(200)))
-    with patch("lightrag.api.mineru_client.aiohttp.ClientSession", return_value=mock_session):
+    with patch(
+        "lightrag.api.mineru_client.aiohttp.ClientSession", return_value=mock_session
+    ):
         async with MinerUClient(cfg) as client:
             assert await client.health_check() is True
 
@@ -230,7 +228,9 @@ async def test_health_check_ok():
 async def test_health_check_non_200():
     cfg = _make_cfg()
     mock_session = _make_mock_session(get=MagicMock(return_value=_mock_response(503)))
-    with patch("lightrag.api.mineru_client.aiohttp.ClientSession", return_value=mock_session):
+    with patch(
+        "lightrag.api.mineru_client.aiohttp.ClientSession", return_value=mock_session
+    ):
         async with MinerUClient(cfg) as client:
             assert await client.health_check() is False
 
@@ -242,7 +242,9 @@ async def test_health_check_connection_error():
     mock_session = _make_mock_session(
         get=MagicMock(side_effect=Exception("connection refused"))
     )
-    with patch("lightrag.api.mineru_client.aiohttp.ClientSession", return_value=mock_session):
+    with patch(
+        "lightrag.api.mineru_client.aiohttp.ClientSession", return_value=mock_session
+    ):
         async with MinerUClient(cfg) as client:
             assert await client.health_check() is False
 
@@ -258,7 +260,9 @@ async def test_parse_sync_success():
     mock_session = _make_mock_session(
         post=MagicMock(return_value=_mock_response(200, payload))
     )
-    with patch("lightrag.api.mineru_client.aiohttp.ClientSession", return_value=mock_session):
+    with patch(
+        "lightrag.api.mineru_client.aiohttp.ClientSession", return_value=mock_session
+    ):
         async with MinerUClient(cfg) as client:
             result = await client.parse(SAMPLE_PATH, SAMPLE_PDF_BYTES)
     assert result == SAMPLE_MARKDOWN
@@ -269,9 +273,13 @@ async def test_parse_sync_success():
 async def test_parse_sync_http_error_raises():
     cfg = _make_cfg(mode="sync")
     mock_session = _make_mock_session(
-        post=MagicMock(return_value=_mock_response(500, text_body="Internal Server Error"))
+        post=MagicMock(
+            return_value=_mock_response(500, text_body="Internal Server Error")
+        )
     )
-    with patch("lightrag.api.mineru_client.aiohttp.ClientSession", return_value=mock_session):
+    with patch(
+        "lightrag.api.mineru_client.aiohttp.ClientSession", return_value=mock_session
+    ):
         async with MinerUClient(cfg) as client:
             with pytest.raises(MinerUError, match="HTTP 500"):
                 await client.parse(SAMPLE_PATH, SAMPLE_PDF_BYTES)
@@ -284,7 +292,9 @@ async def test_parse_sync_empty_response():
     mock_session = _make_mock_session(
         post=MagicMock(return_value=_mock_response(200, []))
     )
-    with patch("lightrag.api.mineru_client.aiohttp.ClientSession", return_value=mock_session):
+    with patch(
+        "lightrag.api.mineru_client.aiohttp.ClientSession", return_value=mock_session
+    ):
         async with MinerUClient(cfg) as client:
             result = await client.parse(SAMPLE_PATH, SAMPLE_PDF_BYTES)
     assert result == ""
@@ -313,7 +323,9 @@ async def test_parse_async_success():
         post=MagicMock(return_value=submit_resp),
         get=MagicMock(side_effect=_get_side_effect),
     )
-    with patch("lightrag.api.mineru_client.aiohttp.ClientSession", return_value=mock_session):
+    with patch(
+        "lightrag.api.mineru_client.aiohttp.ClientSession", return_value=mock_session
+    ):
         async with MinerUClient(cfg) as client:
             content = await client.parse(SAMPLE_PATH, SAMPLE_PDF_BYTES)
     assert content == SAMPLE_MARKDOWN
@@ -328,7 +340,9 @@ async def test_parse_async_task_failure_raises():
         post=MagicMock(return_value=_mock_response(202, {"task_id": task_id})),
         get=MagicMock(return_value=_mock_response(200, {"status": "failed"})),
     )
-    with patch("lightrag.api.mineru_client.aiohttp.ClientSession", return_value=mock_session):
+    with patch(
+        "lightrag.api.mineru_client.aiohttp.ClientSession", return_value=mock_session
+    ):
         async with MinerUClient(cfg) as client:
             with pytest.raises(MinerUError, match="failure status"):
                 await client.parse(SAMPLE_PATH, SAMPLE_PDF_BYTES)
@@ -344,7 +358,9 @@ async def test_parse_async_timeout_raises():
         # Always return "processing" → never completes within max_wait
         get=MagicMock(return_value=_mock_response(200, {"status": "processing"})),
     )
-    with patch("lightrag.api.mineru_client.aiohttp.ClientSession", return_value=mock_session):
+    with patch(
+        "lightrag.api.mineru_client.aiohttp.ClientSession", return_value=mock_session
+    ):
         async with MinerUClient(cfg) as client:
             with pytest.raises(MinerUError, match="did not finish"):
                 await client.parse(SAMPLE_PATH, SAMPLE_PDF_BYTES)
@@ -357,7 +373,9 @@ async def test_parse_async_missing_task_id_raises():
     mock_session = _make_mock_session(
         post=MagicMock(return_value=_mock_response(202, {"other_field": "no_id_here"}))
     )
-    with patch("lightrag.api.mineru_client.aiohttp.ClientSession", return_value=mock_session):
+    with patch(
+        "lightrag.api.mineru_client.aiohttp.ClientSession", return_value=mock_session
+    ):
         async with MinerUClient(cfg) as client:
             with pytest.raises(MinerUError, match="missing task_id"):
                 await client.parse(SAMPLE_PATH, SAMPLE_PDF_BYTES)
@@ -524,7 +542,9 @@ async def test_extract_with_mineru_unhealthy_no_fallback_raises():
     with patch(_MINERU_CLIENT_PATCH, return_value=mock_client):
         with pytest.raises(MinerUError):
             await _extract_with_mineru(
-                SAMPLE_PATH, SAMPLE_PDF_BYTES, _make_extract_cfg(fallback_on_error=False)
+                SAMPLE_PATH,
+                SAMPLE_PDF_BYTES,
+                _make_extract_cfg(fallback_on_error=False),
             )
 
 

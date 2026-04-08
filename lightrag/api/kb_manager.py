@@ -33,6 +33,7 @@ def get_current_kb_id() -> Optional[str]:
 
 # ── Transparent Proxies ───────────────────────────────────────────────────────
 
+
 class RagProxy:
     """
     Delegates every attribute access to the current request's LightRAG instance.
@@ -85,6 +86,7 @@ doc_manager_proxy = DocManagerProxy()
 
 # ── Startup helper ────────────────────────────────────────────────────────────
 
+
 async def _reset_stuck_processing_docs(rag: Any, kb_name: str) -> None:
     """Reset documents stuck in PROCESSING state back to PENDING.
 
@@ -95,6 +97,7 @@ async def _reset_stuck_processing_docs(rag: Any, kb_name: str) -> None:
     """
     try:
         from lightrag.base import DocStatus
+
         processing_docs = await rag.doc_status.get_docs_by_status(DocStatus.PROCESSING)
         if not processing_docs:
             return
@@ -104,7 +107,9 @@ async def _reset_stuck_processing_docs(rag: Any, kb_name: str) -> None:
         for doc_id, status_doc in processing_docs.items():
             chunks_list: list[str] = []
             if isinstance(getattr(status_doc, "chunks_list", None), list):
-                chunks_list = [c for c in status_doc.chunks_list if isinstance(c, str) and c]
+                chunks_list = [
+                    c for c in status_doc.chunks_list if isinstance(c, str) and c
+                ]
             chunks_count = len(chunks_list)
             if isinstance(getattr(status_doc, "chunks_count", None), int):
                 chunks_count = status_doc.chunks_count
@@ -134,6 +139,7 @@ async def _reset_stuck_processing_docs(rag: Any, kb_name: str) -> None:
 
 # ── KnowledgeBaseManager ──────────────────────────────────────────────────────
 
+
 class KnowledgeBaseManager:
     """
     Manages LightRAG + DocumentManager instances keyed by KB id.
@@ -150,8 +156,8 @@ class KnowledgeBaseManager:
         """
         self._rag_factory = rag_factory
         self._input_dir = input_dir
-        self._instances: dict[str, Any] = {}       # kb_id → LightRAG
-        self._doc_managers: dict[str, Any] = {}    # kb_id → DocumentManager
+        self._instances: dict[str, Any] = {}  # kb_id → LightRAG
+        self._doc_managers: dict[str, Any] = {}  # kb_id → DocumentManager
         self._default_kb_id: str = ""
         self._lock = asyncio.Lock()
 
@@ -163,7 +169,9 @@ class KnowledgeBaseManager:
             if kb.id in self._instances:
                 return self._instances[kb.id]
 
-            logger.info(f"KBManager: loading KB '{kb.name}' (workspace='{kb.workspace}')")
+            logger.info(
+                f"KBManager: loading KB '{kb.name}' (workspace='{kb.workspace}')"
+            )
             rag = self._rag_factory(kb.workspace)
             await rag.initialize_storages()
             await rag.check_and_migrate_data()
@@ -174,6 +182,7 @@ class KnowledgeBaseManager:
             await _reset_stuck_processing_docs(rag, kb.name)
 
             from lightrag.api.routers.document_routes import DocumentManager
+
             doc_mgr = DocumentManager(self._input_dir, workspace=kb.workspace)
 
             self._instances[kb.id] = rag
@@ -261,4 +270,3 @@ def init_kb_manager(rag_factory: Callable, input_dir: str) -> KnowledgeBaseManag
     global _kb_manager
     _kb_manager = KnowledgeBaseManager(rag_factory, input_dir)
     return _kb_manager
-

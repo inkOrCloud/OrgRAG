@@ -435,7 +435,7 @@ curl http://localhost:9621/query \
 #### `POST /documents/upload`
 上传一个或多个文件进行索引。
 
-**Content-Type**：`multipart/form-data`  
+**Content-Type**：`multipart/form-data`
 **表单字段**：`files`（一个或多个文件）
 
 **支持格式**：TXT、MD、MDX、PDF、DOCX、PPTX、XLSX、RTF、ODT、EPUB、HTML、JSON、XML、CSV、代码文件等

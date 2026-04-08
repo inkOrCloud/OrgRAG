@@ -17,15 +17,16 @@ from lightrag.utils import logger
 
 # ── Data Model ───────────────────────────────────────────────────────────────
 
+
 @dataclass
 class ChatSession:
     id: str
     username: str
     kb_id: Optional[str]
-    messages: list        # list of ChatMessage dicts (serialized as JSON)
+    messages: list  # list of ChatMessage dicts (serialized as JSON)
     preview: str
     mode: str
-    timestamp: int        # ms since epoch (matches JS Date.now())
+    timestamp: int  # ms since epoch (matches JS Date.now())
     updated_at: str
 
     def to_dict(self) -> dict:
@@ -40,6 +41,7 @@ class ChatSession:
 
 
 # ── Database Manager ──────────────────────────────────────────────────────────
+
 
 class ChatSessionDB:
     """Async-compatible SQLite chat session database."""
@@ -114,8 +116,16 @@ class ChatSessionDB:
 
     # ── Upsert ────────────────────────────────────────────────────────────────
 
-    def _do_upsert(self, session_id: str, username: str, kb_id: Optional[str],
-                   messages: list, preview: str, mode: str, timestamp: int) -> "ChatSession":
+    def _do_upsert(
+        self,
+        session_id: str,
+        username: str,
+        kb_id: Optional[str],
+        messages: list,
+        preview: str,
+        mode: str,
+        timestamp: int,
+    ) -> "ChatSession":
         now = datetime.utcnow().isoformat()
         messages_json = json.dumps(messages, ensure_ascii=False)
         with self._connect() as conn:
@@ -129,19 +139,49 @@ class ChatSessionDB:
                     mode=excluded.mode, timestamp=excluded.timestamp,
                     updated_at=excluded.updated_at
                 """,
-                (session_id, username, kb_id, messages_json, preview, mode, timestamp, now),
+                (
+                    session_id,
+                    username,
+                    kb_id,
+                    messages_json,
+                    preview,
+                    mode,
+                    timestamp,
+                    now,
+                ),
             )
             conn.commit()
-        return ChatSession(id=session_id, username=username, kb_id=kb_id,
-                           messages=messages, preview=preview, mode=mode,
-                           timestamp=timestamp, updated_at=now)
-
-    async def upsert_session(self, session_id: str, username: str, kb_id: Optional[str],
-                              messages: list, preview: str, mode: str, timestamp: int) -> "ChatSession":
-        return await asyncio.to_thread(
-            self._do_upsert, session_id, username, kb_id, messages, preview, mode, timestamp
+        return ChatSession(
+            id=session_id,
+            username=username,
+            kb_id=kb_id,
+            messages=messages,
+            preview=preview,
+            mode=mode,
+            timestamp=timestamp,
+            updated_at=now,
         )
 
+    async def upsert_session(
+        self,
+        session_id: str,
+        username: str,
+        kb_id: Optional[str],
+        messages: list,
+        preview: str,
+        mode: str,
+        timestamp: int,
+    ) -> "ChatSession":
+        return await asyncio.to_thread(
+            self._do_upsert,
+            session_id,
+            username,
+            kb_id,
+            messages,
+            preview,
+            mode,
+            timestamp,
+        )
 
     # ── Delete ────────────────────────────────────────────────────────────────
 
@@ -188,4 +228,3 @@ def init_chat_db(db_path: str) -> ChatSessionDB:
     global _chat_db
     _chat_db = ChatSessionDB(db_path)
     return _chat_db
-

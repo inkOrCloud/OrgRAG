@@ -671,5 +671,5 @@ MINERU_BASE_URL=http://<MinerU服务地址>:28080
 
 MIT License。见 [LICENSE](LICENSE)。
 
-本项目是 [HKUDS/LightRAG](https://github.com/HKUDS/LightRAG)（MIT）的衍生作品。  
+本项目是 [HKUDS/LightRAG](https://github.com/HKUDS/LightRAG)（MIT）的衍生作品。
 图谱 RAG 算法详见论文 [arXiv:2410.05779](https://arxiv.org/abs/2410.05779)。

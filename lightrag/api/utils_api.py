@@ -90,6 +90,7 @@ def _get_whitelist_patterns() -> List[Tuple[str, bool]]:
                     _whitelist_patterns.append((path, False))
     return _whitelist_patterns
 
+
 def get_combined_auth_dependency(api_key: Optional[str] = None):
     """
     Create a combined authentication dependency that implements authentication logic

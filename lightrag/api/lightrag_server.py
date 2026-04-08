@@ -92,6 +92,7 @@ webui_description = os.getenv("WEBUI_DESCRIPTION")
 config = configparser.ConfigParser()
 config.read("config.ini")
 
+
 class LLMConfigCache:
     """Smart LLM and Embedding configuration cache class"""
 
@@ -425,7 +426,9 @@ def create_app(args):
                 if existing_kbs:
                     default_kb = existing_kbs[0]
                     kb_manager.default_kb_id = default_kb.id
-                    logger.info(f"KBManager: default KB is '{default_kb.name}' (id={default_kb.id})")
+                    logger.info(
+                        f"KBManager: default KB is '{default_kb.name}' (id={default_kb.id})"
+                    )
             else:
                 logger.info(
                     "KBManager: system not yet initialized — "
@@ -1139,9 +1142,7 @@ def create_app(args):
 
     # Register routes using transparent proxies – no route internals need changing.
     # The KB routing middleware (below) binds the correct RAG/DocManager per request.
-    app.include_router(
-        create_document_routes(rag_proxy, doc_manager_proxy, api_key)
-    )
+    app.include_router(create_document_routes(rag_proxy, doc_manager_proxy, api_key))
     app.include_router(create_query_routes(rag_proxy, api_key, args.top_k))
     app.include_router(create_graph_routes(rag_proxy, api_key))
 
@@ -1181,7 +1182,9 @@ def create_app(args):
             return await call_next(request)
 
         explicit_kb_id = request.headers.get("X-KB-ID")
-        kb_id = explicit_kb_id if explicit_kb_id in mgr.loaded_kb_ids else mgr.default_kb_id
+        kb_id = (
+            explicit_kb_id if explicit_kb_id in mgr.loaded_kb_ids else mgr.default_kb_id
+        )
 
         # ── KB access permission check for non-admin JWT users ──────────────
         # Only applies to routes that actually use the KB (documents/query/graph).
@@ -1191,9 +1194,18 @@ def create_app(args):
         # Exact paths that never need a KB context (root redirect, API docs …)
         _SKIP_KB_CHECK_EXACT = {"/", "/redoc"}
         _SKIP_KB_CHECK_PREFIXES = (
-            "/kbs", "/users", "/orgs", "/health", "/login",
-            "/token", "/auth", "/docs", "/openapi", "/webui",
-            "/setup", "/static",
+            "/kbs",
+            "/users",
+            "/orgs",
+            "/health",
+            "/login",
+            "/token",
+            "/auth",
+            "/docs",
+            "/openapi",
+            "/webui",
+            "/setup",
+            "/static",
         )
         _needs_kb_check = not (
             _path in _SKIP_KB_CHECK_EXACT
@@ -1224,33 +1236,39 @@ def create_app(args):
                             if explicit_kb_id and explicit_kb_id == kb_id:
                                 return _JSONResponse(
                                     status_code=403,
-                                    content={"detail": "Access denied to this knowledge base"},
+                                    content={
+                                        "detail": "Access denied to this knowledge base"
+                                    },
                                 )
                             # Fell back to default, but user has no access either → 403
                             return _JSONResponse(
                                 status_code=403,
-                                content={"detail": "You have no access to any knowledge base. Contact an administrator."},
+                                content={
+                                    "detail": "You have no access to any knowledge base. Contact an administrator."
+                                },
                             )
                         # ── Write-access gate ─────────────────────────────────
                         # PUT / PATCH / DELETE are always writes.
                         # POST is a write ONLY for specific upload/delete paths;
                         # read-style POSTs (/paginated, /query, /stream) are allowed.
                         _READ_POST_SUFFIXES = (
-                            "/paginated", "/query", "/stream",
-                            "/query/stream", "/mix",
+                            "/paginated",
+                            "/query",
+                            "/stream",
+                            "/query/stream",
+                            "/mix",
                         )
-                        _is_write = (
-                            request.method in {"PUT", "PATCH", "DELETE"}
-                            or (
-                                request.method == "POST"
-                                and not any(_path.endswith(s) for s in _READ_POST_SUFFIXES)
-                            )
+                        _is_write = request.method in {"PUT", "PATCH", "DELETE"} or (
+                            request.method == "POST"
+                            and not any(_path.endswith(s) for s in _READ_POST_SUFFIXES)
                         )
                         if _is_write:
                             if not await db.has_kb_write_access(kb_id, username):
                                 return _JSONResponse(
                                     status_code=403,
-                                    content={"detail": "You do not have write permission for this knowledge base"},
+                                    content={
+                                        "detail": "You do not have write permission for this knowledge base"
+                                    },
                                 )
                 except Exception:
                     pass  # Invalid / expired token – let the auth dependency handle it
@@ -1303,6 +1321,7 @@ def create_app(args):
     async def get_auth_status():
         """Return server version, branding metadata, and setup status."""
         from lightrag.api.kb_db import get_kb_db
+
         kb_db = get_kb_db()
         setup_done = await kb_db.is_setup_complete()
         return {
@@ -1609,16 +1628,15 @@ def create_app(args):
 
                 # a) Add ApiKeyAuth to every endpoint that already declares security
                 if "security" in op:
-                    existing_schemes = {
-                        list(s.keys())[0] for s in op["security"] if s
-                    }
+                    existing_schemes = {list(s.keys())[0] for s in op["security"] if s}
                     if "ApiKeyAuth" not in existing_schemes:
                         op["security"].append({"ApiKeyAuth": []})
 
                 # b) Inject X-KB-ID and LIGHTRAG-WORKSPACE onto KB-routing paths
                 if any(path.startswith(p) for p in _KB_ROUTING_PREFIXES):
                     existing_param_names = {
-                        p.get("name") for p in op.get("parameters", [])
+                        p.get("name")
+                        for p in op.get("parameters", [])
                         if isinstance(p, dict)
                     }
                     op.setdefault("parameters", [])
@@ -1747,6 +1765,7 @@ def check_and_install_dependencies():
 def _cmd_reset_password(argv: list[str]) -> None:
     """Subcommand: reset-password — update a user's password in the local SQLite database."""
     from lightrag.api.user_db import reset_password_cmd
+
     reset_password_cmd(argv)
 
 

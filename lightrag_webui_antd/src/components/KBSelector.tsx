@@ -146,4 +146,3 @@ export default function KBSelector({ collapsed = false }: KBSelectorProps) {
     </div>
   )
 }
-

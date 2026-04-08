@@ -20,12 +20,13 @@ router = APIRouter(prefix="/chat", tags=["Chat Sessions"])
 
 # ── Request / Response Schemas ────────────────────────────────────────────────
 
+
 class SaveSessionRequest(BaseModel):
     kb_id: Optional[str] = None
-    messages: List[Any]       # stored as-is (list of ChatMessage objects)
+    messages: List[Any]  # stored as-is (list of ChatMessage objects)
     preview: str = ""
     mode: str = "hybrid"
-    timestamp: int            # ms since epoch
+    timestamp: int  # ms since epoch
 
 
 class ClearSessionsRequest(BaseModel):
@@ -33,6 +34,7 @@ class ClearSessionsRequest(BaseModel):
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────
+
 
 @router.get("/sessions", summary="List current user's chat sessions")
 async def list_sessions(
@@ -97,4 +99,3 @@ async def clear_sessions(
     db = get_chat_db()
     await db.clear_sessions(current_user["username"], body.kb_id)
     return {"message": "Sessions cleared"}
-

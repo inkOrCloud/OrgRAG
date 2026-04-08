@@ -20,7 +20,7 @@ import sys
 sys.argv = ["lightrag-server"]
 
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, call, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -32,6 +32,7 @@ pytestmark = pytest.mark.offline
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_rag() -> MagicMock:
     rag = MagicMock()
@@ -187,12 +188,14 @@ async def test_delete_failure_does_not_propagate():
     rag.apipeline_process_enqueue_documents.assert_awaited_once()
 
 
-
 # ===========================================================================
 # _reprocess_extraction_failures
 # ===========================================================================
 
-def _make_status_doc(file_path: str, track_id: str = FAKE_TRACK, has_content: bool = False):
+
+def _make_status_doc(
+    file_path: str, track_id: str = FAKE_TRACK, has_content: bool = False
+):
     """Return a minimal mock doc_status entry."""
     doc = MagicMock()
     doc.file_path = file_path
@@ -230,9 +233,9 @@ async def test_reprocess_file_exists_success(tmp_path):
         count = await _reprocess_extraction_failures(rag, tmp_path)
 
     assert count == 1
-    rag.doc_status.delete.assert_any_call(["error-abc"])           # old record removed
+    rag.doc_status.delete.assert_any_call(["error-abc"])  # old record removed
     extract_id = f"extract-{FAKE_TRACK}"
-    rag.doc_status.delete.assert_any_call([extract_id])            # placeholder cleaned up
+    rag.doc_status.delete.assert_any_call([extract_id])  # placeholder cleaned up
 
 
 # ---------------------------------------------------------------------------
@@ -263,7 +266,7 @@ async def test_reprocess_file_exists_known_failure(tmp_path):
 
     assert count == 0
     extract_id = f"extract-{FAKE_TRACK}"
-    rag.doc_status.delete.assert_any_call([extract_id])            # placeholder cleaned up
+    rag.doc_status.delete.assert_any_call([extract_id])  # placeholder cleaned up
 
 
 # ---------------------------------------------------------------------------

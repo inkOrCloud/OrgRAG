@@ -19,18 +19,19 @@ from lightrag.utils import logger
 
 # ── Data Model ───────────────────────────────────────────────────────────────
 
+
 @dataclass
 class KnowledgeBase:
     id: str
     name: str
-    workspace: str      # storage isolation key (a-z, A-Z, 0-9, _)
+    workspace: str  # storage isolation key (a-z, A-Z, 0-9, _)
     description: str
     owner_username: str
     is_active: bool
     created_at: str
     updated_at: str
     settings: dict = field(default_factory=dict)  # Phase 3: per-KB query settings
-    org_id: Optional[str] = None                  # Phase B: owning organization
+    org_id: Optional[str] = None  # Phase B: owning organization
 
     def to_dict(self) -> dict:
         return {
@@ -103,6 +104,7 @@ def _make_workspace(name: str, kb_id: str) -> str:
 
 # ── Database Manager ─────────────────────────────────────────────────────────
 
+
 class KBDatabase:
     """Async-compatible SQLite knowledge-base metadata store."""
 
@@ -128,11 +130,17 @@ class KBDatabase:
                     updated_at    TEXT NOT NULL
                 )
             """)
-            conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_kb_name ON knowledge_bases(name)")
-            conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_kb_workspace ON knowledge_bases(workspace)")
+            conn.execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_kb_name ON knowledge_bases(name)"
+            )
+            conn.execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_kb_workspace ON knowledge_bases(workspace)"
+            )
             # Phase 3: per-KB settings column (idempotent ALTER TABLE)
             try:
-                conn.execute("ALTER TABLE knowledge_bases ADD COLUMN settings TEXT NOT NULL DEFAULT '{}'")
+                conn.execute(
+                    "ALTER TABLE knowledge_bases ADD COLUMN settings TEXT NOT NULL DEFAULT '{}'"
+                )
                 conn.commit()
             except sqlite3.OperationalError:
                 pass  # Column already exists
@@ -147,8 +155,12 @@ class KBDatabase:
                     UNIQUE(kb_id, username)
                 )
             """)
-            conn.execute("CREATE INDEX IF NOT EXISTS idx_kbperm_kb   ON kb_user_permissions(kb_id)")
-            conn.execute("CREATE INDEX IF NOT EXISTS idx_kbperm_user ON kb_user_permissions(username)")
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_kbperm_kb   ON kb_user_permissions(kb_id)"
+            )
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_kbperm_user ON kb_user_permissions(username)"
+            )
             # Phase A: Organization tree
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS organizations (
@@ -160,7 +172,9 @@ class KBDatabase:
                     updated_at  TEXT NOT NULL
                 )
             """)
-            conn.execute("CREATE INDEX IF NOT EXISTS idx_org_parent ON organizations(parent_id)")
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_org_parent ON organizations(parent_id)"
+            )
             # Phase A: Org members (UNIQUE username enforces single-org rule)
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS org_members (
@@ -171,8 +185,12 @@ class KBDatabase:
                     joined_at TEXT NOT NULL
                 )
             """)
-            conn.execute("CREATE INDEX IF NOT EXISTS idx_orgmem_org  ON org_members(org_id)")
-            conn.execute("CREATE INDEX IF NOT EXISTS idx_orgmem_user ON org_members(username)")
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_orgmem_org  ON org_members(org_id)"
+            )
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_orgmem_user ON org_members(username)"
+            )
             # One-time cleanup: remove mass-migration kb_user_permissions entries
             # (keep only rows where username == kb owner, i.e. explicit creator grants)
             conn.execute("""
@@ -183,7 +201,9 @@ class KBDatabase:
             """)
             # Phase B: add org_id to knowledge_bases
             try:
-                conn.execute("ALTER TABLE knowledge_bases ADD COLUMN org_id TEXT REFERENCES organizations(id) ON DELETE SET NULL")
+                conn.execute(
+                    "ALTER TABLE knowledge_bases ADD COLUMN org_id TEXT REFERENCES organizations(id) ON DELETE SET NULL"
+                )
             except Exception:
                 pass  # column already exists
             # Auto-migrate: assign existing KBs to their creator's org
@@ -205,7 +225,9 @@ class KBDatabase:
                     UNIQUE(username, permission)
                 )
             """)
-            conn.execute("CREATE INDEX IF NOT EXISTS idx_kboperm_user ON org_kb_permissions(username)")
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_kboperm_user ON org_kb_permissions(username)"
+            )
             # Setup state: tracks whether initial wizard has been completed
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS system_settings (
@@ -224,10 +246,14 @@ class KBDatabase:
         except (json.JSONDecodeError, TypeError):
             settings = {}
         return KnowledgeBase(
-            id=row["id"], name=row["name"], workspace=row["workspace"],
-            description=row["description"], owner_username=row["owner_username"],
+            id=row["id"],
+            name=row["name"],
+            workspace=row["workspace"],
+            description=row["description"],
+            owner_username=row["owner_username"],
             is_active=bool(row["is_active"]),
-            created_at=row["created_at"], updated_at=row["updated_at"],
+            created_at=row["created_at"],
+            updated_at=row["updated_at"],
             settings=settings,
             org_id=row["org_id"] if "org_id" in keys else None,
         )
@@ -245,7 +271,9 @@ class KBDatabase:
     async def count_kbs(self) -> int:
         return await asyncio.to_thread(self._do_count)
 
-    def _do_create(self, kb_id, name, workspace, description, owner_username, now, org_id=None):
+    def _do_create(
+        self, kb_id, name, workspace, description, owner_username, now, org_id=None
+    ):
         with self._connect() as conn:
             conn.execute(
                 "INSERT INTO knowledge_bases (id,name,workspace,description,owner_username,is_active,created_at,updated_at,org_id) "
@@ -253,22 +281,38 @@ class KBDatabase:
                 (kb_id, name, workspace, description, owner_username, now, now, org_id),
             )
             conn.commit()
-        return KnowledgeBase(id=kb_id, name=name, workspace=workspace,
-                             description=description, owner_username=owner_username,
-                             is_active=True, created_at=now, updated_at=now, org_id=org_id)
+        return KnowledgeBase(
+            id=kb_id,
+            name=name,
+            workspace=workspace,
+            description=description,
+            owner_username=owner_username,
+            is_active=True,
+            created_at=now,
+            updated_at=now,
+            org_id=org_id,
+        )
 
-    async def create_kb(self, name: str, description: str = "",
-                        owner_username: str = "system",
-                        workspace: Optional[str] = None,
-                        org_id: Optional[str] = None) -> KnowledgeBase:
+    async def create_kb(
+        self,
+        name: str,
+        description: str = "",
+        owner_username: str = "system",
+        workspace: Optional[str] = None,
+        org_id: Optional[str] = None,
+    ) -> KnowledgeBase:
         kb_id = str(uuid.uuid4())
         ws = workspace if workspace is not None else _make_workspace(name, kb_id)
         now = datetime.utcnow().isoformat()
-        return await asyncio.to_thread(self._do_create, kb_id, name, ws, description, owner_username, now, org_id)
+        return await asyncio.to_thread(
+            self._do_create, kb_id, name, ws, description, owner_username, now, org_id
+        )
 
     def _do_list(self) -> list:
         with self._connect() as conn:
-            rows = conn.execute("SELECT * FROM knowledge_bases ORDER BY created_at ASC").fetchall()
+            rows = conn.execute(
+                "SELECT * FROM knowledge_bases ORDER BY created_at ASC"
+            ).fetchall()
             return [self._row_to_kb(r) for r in rows]
 
     async def list_kbs(self) -> list[KnowledgeBase]:
@@ -276,7 +320,9 @@ class KBDatabase:
 
     def _do_get_by_id(self, kb_id: str) -> Optional[KnowledgeBase]:
         with self._connect() as conn:
-            row = conn.execute("SELECT * FROM knowledge_bases WHERE id=?", (kb_id,)).fetchone()
+            row = conn.execute(
+                "SELECT * FROM knowledge_bases WHERE id=?", (kb_id,)
+            ).fetchone()
             return self._row_to_kb(row) if row else None
 
     async def get_kb_by_id(self, kb_id: str) -> Optional[KnowledgeBase]:
@@ -284,7 +330,9 @@ class KBDatabase:
 
     def _do_get_by_name(self, name: str) -> Optional[KnowledgeBase]:
         with self._connect() as conn:
-            row = conn.execute("SELECT * FROM knowledge_bases WHERE name=?", (name,)).fetchone()
+            row = conn.execute(
+                "SELECT * FROM knowledge_bases WHERE name=?", (name,)
+            ).fetchone()
             return self._row_to_kb(row) if row else None
 
     async def get_kb_by_name(self, name: str) -> Optional[KnowledgeBase]:
@@ -301,7 +349,9 @@ class KBDatabase:
         return self._do_get_by_id(kb_id)
 
     async def update_kb(self, kb_id: str, **kwargs) -> Optional[KnowledgeBase]:
-        fields = {k: v for k, v in kwargs.items() if k in ("name", "description", "is_active")}
+        fields = {
+            k: v for k, v in kwargs.items() if k in ("name", "description", "is_active")
+        }
         if not fields:
             return await self.get_kb_by_id(kb_id)
         return await asyncio.to_thread(self._do_update, kb_id, fields)
@@ -331,7 +381,9 @@ class KBDatabase:
     async def get_kb_settings(self, kb_id: str) -> dict:
         return await asyncio.to_thread(self._do_get_settings, kb_id)
 
-    def _do_update_settings(self, kb_id: str, settings: dict) -> Optional["KnowledgeBase"]:
+    def _do_update_settings(
+        self, kb_id: str, settings: dict
+    ) -> Optional["KnowledgeBase"]:
         now = datetime.utcnow().isoformat()
         with self._connect() as conn:
             conn.execute(
@@ -341,7 +393,9 @@ class KBDatabase:
             conn.commit()
         return self._do_get_by_id(kb_id)
 
-    async def update_kb_settings(self, kb_id: str, settings: dict) -> Optional["KnowledgeBase"]:
+    async def update_kb_settings(
+        self, kb_id: str, settings: dict
+    ) -> Optional["KnowledgeBase"]:
         return await asyncio.to_thread(self._do_update_settings, kb_id, settings)
 
     # ── Permission CRUD ───────────────────────────────────────────────────────
@@ -376,10 +430,13 @@ class KBDatabase:
     async def revoke_kb_access(self, kb_id: str, username: str) -> bool:
         return await asyncio.to_thread(self._do_revoke, kb_id, username)
 
-    def _do_has_access(self, kb_id: str, username: str, require_write: bool = False) -> bool:
+    def _do_has_access(
+        self, kb_id: str, username: str, require_write: bool = False
+    ) -> bool:
         with self._connect() as conn:
             kb_row = conn.execute(
-                "SELECT org_id, owner_username FROM knowledge_bases WHERE id=?", (kb_id,)
+                "SELECT org_id, owner_username FROM knowledge_bases WHERE id=?",
+                (kb_id,),
             ).fetchone()
             if not kb_row:
                 return False
@@ -389,7 +446,9 @@ class KBDatabase:
                 kb_org_id = kb_row["org_id"]
                 if require_write:
                     return kb_org_id in accessible["write"]
-                return kb_org_id in accessible["read"] or kb_org_id in accessible["write"]
+                return (
+                    kb_org_id in accessible["read"] or kb_org_id in accessible["write"]
+                )
             else:
                 # Legacy KB (no org) → only the owner has write access;
                 # explicit kb_user_permissions grants read access.
@@ -406,7 +465,9 @@ class KBDatabase:
 
     async def has_kb_write_access(self, kb_id: str, username: str) -> bool:
         """Check whether *username* has write (upload/delete/modify) access to *kb_id*."""
-        return await asyncio.to_thread(self._do_has_access, kb_id, username, require_write=True)
+        return await asyncio.to_thread(
+            self._do_has_access, kb_id, username, require_write=True
+        )
 
     def _do_list_members(self, kb_id: str) -> list:
         with self._connect() as conn:
@@ -414,7 +475,9 @@ class KBDatabase:
                 "SELECT username, granted_at FROM kb_user_permissions WHERE kb_id=? ORDER BY granted_at ASC",
                 (kb_id,),
             ).fetchall()
-            return [{"username": r["username"], "granted_at": r["granted_at"]} for r in rows]
+            return [
+                {"username": r["username"], "granted_at": r["granted_at"]} for r in rows
+            ]
 
     async def list_kb_members(self, kb_id: str) -> list[dict]:
         return await asyncio.to_thread(self._do_list_members, kb_id)
@@ -453,7 +516,9 @@ class KBDatabase:
         """Grant user access to every existing KB (used for migration and new user setup)."""
         now = datetime.utcnow().isoformat()
         with self._connect() as conn:
-            kb_ids = [r[0] for r in conn.execute("SELECT id FROM knowledge_bases").fetchall()]
+            kb_ids = [
+                r[0] for r in conn.execute("SELECT id FROM knowledge_bases").fetchall()
+            ]
             for kb_id in kb_ids:
                 perm_id = str(uuid.uuid4())
                 try:
@@ -472,8 +537,12 @@ class KBDatabase:
     def _do_migrate_all(self):
         """One-time Phase 2 migration: grant every existing user access to every existing KB."""
         with self._connect() as conn:
-            usernames = [r[0] for r in conn.execute("SELECT username FROM users").fetchall()]
-            kb_ids = [r[0] for r in conn.execute("SELECT id FROM knowledge_bases").fetchall()]
+            usernames = [
+                r[0] for r in conn.execute("SELECT username FROM users").fetchall()
+            ]
+            kb_ids = [
+                r[0] for r in conn.execute("SELECT id FROM knowledge_bases").fetchall()
+            ]
             now = datetime.utcnow().isoformat()
             for username in usernames:
                 for kb_id in kb_ids:
@@ -486,11 +555,15 @@ class KBDatabase:
                     except sqlite3.IntegrityError:
                         pass
             conn.commit()
-        logger.info("Phase 2 migration: granted all existing users access to all existing KBs")
+        logger.info(
+            "Phase 2 migration: granted all existing users access to all existing KBs"
+        )
 
     # ── Phase C: KB operation permissions ────────────────────────────────────
 
-    def _do_grant_kb_permission(self, username: str, permission: str, granted_by: str) -> dict:
+    def _do_grant_kb_permission(
+        self, username: str, permission: str, granted_by: str
+    ) -> dict:
         pid = str(uuid.uuid4())
         now = datetime.utcnow().isoformat()
         with self._connect() as conn:
@@ -502,10 +575,17 @@ class KBDatabase:
                 conn.commit()
                 return {"ok": True}
             except sqlite3.IntegrityError:
-                return {"ok": False, "reason": f"用户 '{username}' 已拥有 {permission} 权限"}
+                return {
+                    "ok": False,
+                    "reason": f"用户 '{username}' 已拥有 {permission} 权限",
+                }
 
-    async def grant_kb_permission(self, username: str, permission: str, granted_by: str) -> dict:
-        return await asyncio.to_thread(self._do_grant_kb_permission, username, permission, granted_by)
+    async def grant_kb_permission(
+        self, username: str, permission: str, granted_by: str
+    ) -> dict:
+        return await asyncio.to_thread(
+            self._do_grant_kb_permission, username, permission, granted_by
+        )
 
     def _do_revoke_kb_permission(self, username: str, permission: str) -> bool:
         with self._connect() as conn:
@@ -517,12 +597,15 @@ class KBDatabase:
         return cur.rowcount > 0
 
     async def revoke_kb_permission(self, username: str, permission: str) -> bool:
-        return await asyncio.to_thread(self._do_revoke_kb_permission, username, permission)
+        return await asyncio.to_thread(
+            self._do_revoke_kb_permission, username, permission
+        )
 
     def _do_get_user_kb_permissions(self, username: str) -> set:
         with self._connect() as conn:
             rows = conn.execute(
-                "SELECT permission FROM org_kb_permissions WHERE username=?", (username,)
+                "SELECT permission FROM org_kb_permissions WHERE username=?",
+                (username,),
             ).fetchall()
         return {r["permission"] for r in rows}
 
@@ -568,32 +651,45 @@ class KBDatabase:
                 return {"read": [], "write": []}
 
             user_org_id = member_row["org_id"]
-            user_role   = member_row["role"]
+            user_role = member_row["role"]
 
             perm_rows = conn.execute(
-                "SELECT permission FROM org_kb_permissions WHERE username=?", (username,)
+                "SELECT permission FROM org_kb_permissions WHERE username=?",
+                (username,),
             ).fetchall()
             permissions = {r["permission"] for r in perm_rows}
 
             # Descendants (exclusive of self)
-            desc = [r[0] for r in conn.execute("""
+            desc = [
+                r[0]
+                for r in conn.execute(
+                    """
                 WITH RECURSIVE d(id) AS (
                     SELECT id FROM organizations WHERE parent_id=?
                     UNION ALL
                     SELECT o.id FROM organizations o JOIN d ON o.parent_id=d.id
                 ) SELECT id FROM d
-            """, (user_org_id,)).fetchall()]
+            """,
+                    (user_org_id,),
+                ).fetchall()
+            ]
 
             # Ancestors (exclusive of self)
-            anc = [r[0] for r in conn.execute("""
+            anc = [
+                r[0]
+                for r in conn.execute(
+                    """
                 WITH RECURSIVE a(id, parent_id) AS (
                     SELECT id, parent_id FROM organizations WHERE id=?
                     UNION ALL
                     SELECT o.id, o.parent_id FROM organizations o JOIN a ON o.id=a.parent_id
                 ) SELECT id FROM a WHERE id!=?
-            """, (user_org_id, user_org_id)).fetchall()]
+            """,
+                    (user_org_id, user_org_id),
+                ).fetchall()
+            ]
 
-        read_ids  = {user_org_id}          # base: own org always readable
+        read_ids = {user_org_id}  # base: own org always readable
         write_ids: set = set()
 
         # org_admin: CRUD on own org + descendants
@@ -606,7 +702,7 @@ class KBDatabase:
         if "write" in permissions:
             write_ids.add(user_org_id)
             write_ids.update(desc)
-            read_ids.update(desc)          # write implies read
+            read_ids.update(desc)  # write implies read
 
         # kb_read grant: read ancestors + descendants
         if "read" in permissions:
@@ -642,9 +738,12 @@ class KBDatabase:
 
     def _row_to_org(self, row: sqlite3.Row, member_count: int = 0) -> Organization:
         return Organization(
-            id=row["id"], name=row["name"], parent_id=row["parent_id"],
+            id=row["id"],
+            name=row["name"],
+            parent_id=row["parent_id"],
             description=row["description"],
-            created_at=row["created_at"], updated_at=row["updated_at"],
+            created_at=row["created_at"],
+            updated_at=row["updated_at"],
             member_count=member_count,
         )
 
@@ -655,21 +754,35 @@ class KBDatabase:
                 (org_id, name, parent_id, description, now, now),
             )
             conn.commit()
-        return Organization(id=org_id, name=name, parent_id=parent_id,
-                            description=description, created_at=now, updated_at=now)
+        return Organization(
+            id=org_id,
+            name=name,
+            parent_id=parent_id,
+            description=description,
+            created_at=now,
+            updated_at=now,
+        )
 
-    async def create_org(self, name: str, parent_id: Optional[str] = None,
-                         description: str = "") -> Organization:
+    async def create_org(
+        self, name: str, parent_id: Optional[str] = None, description: str = ""
+    ) -> Organization:
         org_id = str(uuid.uuid4())
         now = datetime.utcnow().isoformat()
-        return await asyncio.to_thread(self._do_create_org, org_id, name, parent_id, description, now)
+        return await asyncio.to_thread(
+            self._do_create_org, org_id, name, parent_id, description, now
+        )
 
     def _do_list_orgs_flat(self) -> list:
         with self._connect() as conn:
-            rows = conn.execute("SELECT * FROM organizations ORDER BY created_at ASC").fetchall()
-            counts = {r[0]: r[1] for r in conn.execute(
-                "SELECT org_id, COUNT(*) FROM org_members GROUP BY org_id"
-            ).fetchall()}
+            rows = conn.execute(
+                "SELECT * FROM organizations ORDER BY created_at ASC"
+            ).fetchall()
+            counts = {
+                r[0]: r[1]
+                for r in conn.execute(
+                    "SELECT org_id, COUNT(*) FROM org_members GROUP BY org_id"
+                ).fetchall()
+            }
             return [self._row_to_org(r, counts.get(r["id"], 0)) for r in rows]
 
     async def list_orgs_flat(self) -> list[Organization]:
@@ -692,10 +805,14 @@ class KBDatabase:
 
     def _do_get_org(self, org_id: str) -> Optional[Organization]:
         with self._connect() as conn:
-            row = conn.execute("SELECT * FROM organizations WHERE id=?", (org_id,)).fetchone()
+            row = conn.execute(
+                "SELECT * FROM organizations WHERE id=?", (org_id,)
+            ).fetchone()
             if not row:
                 return None
-            count = conn.execute("SELECT COUNT(*) FROM org_members WHERE org_id=?", (org_id,)).fetchone()[0]
+            count = conn.execute(
+                "SELECT COUNT(*) FROM org_members WHERE org_id=?", (org_id,)
+            ).fetchone()[0]
             return self._row_to_org(row, count)
 
     async def get_org_by_id(self, org_id: str) -> Optional[Organization]:
@@ -712,17 +829,23 @@ class KBDatabase:
         return self._do_get_org(org_id)
 
     async def update_org(self, org_id: str, **kwargs) -> Optional[Organization]:
-        fields = {k: v for k, v in kwargs.items() if k in ("name", "description", "parent_id")}
+        fields = {
+            k: v for k, v in kwargs.items() if k in ("name", "description", "parent_id")
+        }
         if not fields:
             return await self.get_org_by_id(org_id)
         return await asyncio.to_thread(self._do_update_org, org_id, fields)
 
     def _do_delete_org(self, org_id: str) -> dict:
         with self._connect() as conn:
-            child = conn.execute("SELECT id FROM organizations WHERE parent_id=?", (org_id,)).fetchone()
+            child = conn.execute(
+                "SELECT id FROM organizations WHERE parent_id=?", (org_id,)
+            ).fetchone()
             if child:
                 return {"ok": False, "reason": "该组织下还有子组织，请先删除子组织"}
-            member = conn.execute("SELECT id FROM org_members WHERE org_id=?", (org_id,)).fetchone()
+            member = conn.execute(
+                "SELECT id FROM org_members WHERE org_id=?", (org_id,)
+            ).fetchone()
             if member:
                 return {"ok": False, "reason": "该组织下还有成员，请先移除所有成员"}
             conn.execute("DELETE FROM organizations WHERE id=?", (org_id,))
@@ -735,7 +858,8 @@ class KBDatabase:
     def _do_get_descendant_ids(self, org_id: str) -> list[str]:
         """Return all descendant org IDs (excluding self) via recursive CTE."""
         with self._connect() as conn:
-            rows = conn.execute("""
+            rows = conn.execute(
+                """
                 WITH RECURSIVE descendants(id) AS (
                     SELECT id FROM organizations WHERE parent_id = ?
                     UNION ALL
@@ -743,7 +867,9 @@ class KBDatabase:
                     JOIN descendants d ON o.parent_id = d.id
                 )
                 SELECT id FROM descendants
-            """, (org_id,)).fetchall()
+            """,
+                (org_id,),
+            ).fetchall()
         return [r[0] for r in rows]
 
     async def get_descendant_ids(self, org_id: str) -> list[str]:
@@ -752,7 +878,8 @@ class KBDatabase:
     def _do_get_ancestor_ids(self, org_id: str) -> list[str]:
         """Return all ancestor org IDs (excluding self) via recursive CTE."""
         with self._connect() as conn:
-            rows = conn.execute("""
+            rows = conn.execute(
+                """
                 WITH RECURSIVE ancestors(id, parent_id) AS (
                     SELECT id, parent_id FROM organizations WHERE id = ?
                     UNION ALL
@@ -760,7 +887,9 @@ class KBDatabase:
                     JOIN ancestors a ON o.id = a.parent_id
                 )
                 SELECT id FROM ancestors WHERE id != ?
-            """, (org_id, org_id)).fetchall()
+            """,
+                (org_id, org_id),
+            ).fetchall()
         return [r[0] for r in rows]
 
     async def get_ancestor_ids(self, org_id: str) -> list[str]:
@@ -778,8 +907,16 @@ class KBDatabase:
                     (member_id, org_id, username, role, now),
                 )
                 conn.commit()
-                return {"ok": True, "member": OrgMember(id=member_id, org_id=org_id,
-                                                         username=username, role=role, joined_at=now)}
+                return {
+                    "ok": True,
+                    "member": OrgMember(
+                        id=member_id,
+                        org_id=org_id,
+                        username=username,
+                        role=role,
+                        joined_at=now,
+                    ),
+                }
             except sqlite3.IntegrityError:
                 # Username UNIQUE violation → already in another org
                 existing = conn.execute(
@@ -789,13 +926,16 @@ class KBDatabase:
                     return {"ok": False, "reason": f"用户 '{username}' 已属于其他组织"}
                 return {"ok": False, "reason": f"用户 '{username}' 已是该组织成员"}
 
-    async def add_org_member(self, org_id: str, username: str, role: str = "member") -> dict:
+    async def add_org_member(
+        self, org_id: str, username: str, role: str = "member"
+    ) -> dict:
         return await asyncio.to_thread(self._do_add_member, org_id, username, role)
 
     def _do_remove_member(self, org_id: str, username: str) -> bool:
         with self._connect() as conn:
             cur = conn.execute(
-                "DELETE FROM org_members WHERE org_id=? AND username=?", (org_id, username)
+                "DELETE FROM org_members WHERE org_id=? AND username=?",
+                (org_id, username),
             )
             conn.commit()
         return cur.rowcount > 0
@@ -812,16 +952,29 @@ class KBDatabase:
             conn.commit()
         return cur.rowcount > 0
 
-    async def update_org_member_role(self, org_id: str, username: str, role: str) -> bool:
-        return await asyncio.to_thread(self._do_update_member_role, org_id, username, role)
+    async def update_org_member_role(
+        self, org_id: str, username: str, role: str
+    ) -> bool:
+        return await asyncio.to_thread(
+            self._do_update_member_role, org_id, username, role
+        )
 
     def _do_list_members(self, org_id: str) -> list:
         with self._connect() as conn:
             rows = conn.execute(
-                "SELECT * FROM org_members WHERE org_id=? ORDER BY joined_at ASC", (org_id,)
+                "SELECT * FROM org_members WHERE org_id=? ORDER BY joined_at ASC",
+                (org_id,),
             ).fetchall()
-        return [OrgMember(id=r["id"], org_id=r["org_id"], username=r["username"],
-                          role=r["role"], joined_at=r["joined_at"]) for r in rows]
+        return [
+            OrgMember(
+                id=r["id"],
+                org_id=r["org_id"],
+                username=r["username"],
+                role=r["role"],
+                joined_at=r["joined_at"],
+            )
+            for r in rows
+        ]
 
     async def list_org_members(self, org_id: str) -> list[OrgMember]:
         return await asyncio.to_thread(self._do_list_members, org_id)
@@ -833,13 +986,17 @@ class KBDatabase:
             ).fetchone()
         if not row:
             return None
-        return OrgMember(id=row["id"], org_id=row["org_id"], username=row["username"],
-                         role=row["role"], joined_at=row["joined_at"])
+        return OrgMember(
+            id=row["id"],
+            org_id=row["org_id"],
+            username=row["username"],
+            role=row["role"],
+            joined_at=row["joined_at"],
+        )
 
     async def get_user_org(self, username: str) -> Optional[OrgMember]:
         """Return the org membership for a user, or None if unassigned."""
         return await asyncio.to_thread(self._do_get_user_org, username)
-
 
     # ── System Settings ───────────────────────────────────────────────────────
 
@@ -893,4 +1050,3 @@ def init_kb_db(db_path: str) -> KBDatabase:
     global _kb_db
     _kb_db = KBDatabase(db_path)
     return _kb_db
-

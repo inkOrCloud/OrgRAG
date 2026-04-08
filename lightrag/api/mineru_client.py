@@ -149,9 +149,7 @@ class MinerUClient:
             )
         return self._session
 
-    def _build_form_data(
-        self, file_path: Path, file_bytes: bytes
-    ) -> aiohttp.FormData:
+    def _build_form_data(self, file_path: Path, file_bytes: bytes) -> aiohttp.FormData:
         """Construct the multipart/form-data payload for a parse request."""
         cfg = self._cfg
         data = aiohttp.FormData()
@@ -327,12 +325,7 @@ def _extract_markdown(response: Any) -> str:
         return ""
 
     def _md_from_dict(item: dict) -> str:
-        md = (
-            item.get("md_content")
-            or item.get("markdown")
-            or item.get("content")
-            or ""
-        )
+        md = item.get("md_content") or item.get("markdown") or item.get("content") or ""
         return md.strip() if isinstance(md, str) else ""
 
     if isinstance(response, list):
