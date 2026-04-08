@@ -16,7 +16,6 @@ from fastapi import (
     BackgroundTasks,
     Depends,
     File,
-    Header,
     HTTPException,
     UploadFile,
 )
@@ -1013,7 +1012,7 @@ def _get_effective_mineru_config(kb_settings: dict | None) -> dict:
 
     raw_lang = _kb_or_global("mineru_lang_list", "mineru_lang_list", ["ch"])
     if isinstance(raw_lang, str):
-        lang_list = [l.strip() for l in raw_lang.split(",") if l.strip()]
+        lang_list = [lang.strip() for lang in raw_lang.split(",") if lang.strip()]
     else:
         lang_list = list(raw_lang) if raw_lang else ["ch"]
 
@@ -1131,15 +1130,24 @@ def _get_effective_docling_vlm_config(kb_settings: dict | None) -> dict:
     """
     kb = kb_settings or {}
     return {
-        "enabled": kb.get("docling_vlm_enabled") if kb.get("docling_vlm_enabled") is not None else getattr(global_args, "docling_vlm_enabled", False),
-        "mode": kb.get("docling_vlm_mode") or getattr(global_args, "docling_vlm_mode", "auto"),
-        "engine": kb.get("docling_vlm_engine") or getattr(global_args, "docling_vlm_engine", "ollama"),
-        "url": kb.get("docling_vlm_url") or getattr(global_args, "docling_vlm_url", None),
-        "api_key": kb.get("docling_vlm_api_key") or getattr(global_args, "docling_vlm_api_key", None),
-        "model": kb.get("docling_vlm_model") or getattr(global_args, "docling_vlm_model", None),
-        "timeout": kb.get("docling_vlm_timeout") or getattr(global_args, "docling_vlm_timeout", 120),
+        "enabled": kb.get("docling_vlm_enabled")
+        if kb.get("docling_vlm_enabled") is not None
+        else getattr(global_args, "docling_vlm_enabled", False),
+        "mode": kb.get("docling_vlm_mode")
+        or getattr(global_args, "docling_vlm_mode", "auto"),
+        "engine": kb.get("docling_vlm_engine")
+        or getattr(global_args, "docling_vlm_engine", "ollama"),
+        "url": kb.get("docling_vlm_url")
+        or getattr(global_args, "docling_vlm_url", None),
+        "api_key": kb.get("docling_vlm_api_key")
+        or getattr(global_args, "docling_vlm_api_key", None),
+        "model": kb.get("docling_vlm_model")
+        or getattr(global_args, "docling_vlm_model", None),
+        "timeout": kb.get("docling_vlm_timeout")
+        or getattr(global_args, "docling_vlm_timeout", 120),
         "concurrency": getattr(global_args, "docling_vlm_concurrency", 1),
-        "preset": kb.get("docling_vlm_preset") or getattr(global_args, "docling_vlm_preset", "pixtral"),
+        "preset": kb.get("docling_vlm_preset")
+        or getattr(global_args, "docling_vlm_preset", "pixtral"),
     }
 
 
@@ -1221,7 +1229,10 @@ def _convert_with_docling_vlm_convert(file_path: Path, vlm_cfg: dict) -> str:
     try:
         result = converter.convert(file_path)
     except Exception as conv_exc:
-        logger.error(f"[Docling VLM] converter.convert failed for {file_path.name}: {conv_exc}", exc_info=True)
+        logger.error(
+            f"[Docling VLM] converter.convert failed for {file_path.name}: {conv_exc}",
+            exc_info=True,
+        )
         return ""
     markdown = result.document.export_to_markdown()
     logger.info(
@@ -1253,7 +1264,9 @@ def _convert_with_docling_picture_description(file_path: Path, vlm_cfg: dict) ->
     else:
         engine_options = _build_docling_api_engine_options(vlm_cfg)
 
-    picture_desc_options = PictureDescriptionVlmEngineOptions(engine_options=engine_options)
+    picture_desc_options = PictureDescriptionVlmEngineOptions(
+        engine_options=engine_options
+    )
     pipeline_options = PdfPipelineOptions(
         do_picture_description=True,
         picture_description_options=picture_desc_options,
@@ -1261,7 +1274,9 @@ def _convert_with_docling_picture_description(file_path: Path, vlm_cfg: dict) ->
     )
 
     converter = DocumentConverter(
-        format_options={InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)}
+        format_options={
+            InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)
+        }
     )
     result = converter.convert(file_path)
     return result.document.export_to_markdown()
@@ -1691,9 +1706,7 @@ async def pipeline_enqueue_file(
                         mineru_cfg = _get_effective_mineru_config(kb_settings)
                         if mineru_cfg["enabled"]:
                             # MinerU engine has highest priority for PDF
-                            logger.info(
-                                f"[MinerU] Processing PDF: {file_path.name}"
-                            )
+                            logger.info(f"[MinerU] Processing PDF: {file_path.name}")
                             content = await _extract_with_mineru(
                                 file_path, file, mineru_cfg
                             )
@@ -1710,36 +1723,59 @@ async def pipeline_enqueue_file(
                                 global_args.document_loading_engine == "DOCLING"
                                 and _is_docling_available()
                             )
-                            if not use_docling and global_args.document_loading_engine == "DOCLING":
+                            if (
+                                not use_docling
+                                and global_args.document_loading_engine == "DOCLING"
+                            ):
                                 logger.warning(
                                     f"DOCLING engine configured but not available for {file_path.name}. Falling back to pypdf."
                                 )
 
                             if use_docling:
                                 vlm_cfg = _get_effective_docling_vlm_config(kb_settings)
-                                mode = vlm_cfg["mode"] if vlm_cfg["enabled"] else "disabled"
+                                mode = (
+                                    vlm_cfg["mode"]
+                                    if vlm_cfg["enabled"]
+                                    else "disabled"
+                                )
 
                                 if mode == "auto":
                                     probe = await asyncio.to_thread(
-                                        _extract_pdf_pypdf, file, global_args.pdf_decrypt_password
+                                        _extract_pdf_pypdf,
+                                        file,
+                                        global_args.pdf_decrypt_password,
                                     )
                                     if probe.strip():
                                         content = probe
-                                        logger.debug(f"[Docling] auto mode: text layer detected, using pypdf for {file_path.name}")
+                                        logger.debug(
+                                            f"[Docling] auto mode: text layer detected, using pypdf for {file_path.name}"
+                                        )
                                     else:
-                                        logger.info(f"[Docling] auto mode: no text layer, using VLM Convert for {file_path.name}")
+                                        logger.info(
+                                            f"[Docling] auto mode: no text layer, using VLM Convert for {file_path.name}"
+                                        )
                                         content = await asyncio.to_thread(
-                                            _convert_with_docling_vlm_convert, file_path, vlm_cfg
+                                            _convert_with_docling_vlm_convert,
+                                            file_path,
+                                            vlm_cfg,
                                         )
                                 elif mode == "vlm_convert":
-                                    logger.info(f"[Docling] VLM Convert mode for {file_path.name}")
+                                    logger.info(
+                                        f"[Docling] VLM Convert mode for {file_path.name}"
+                                    )
                                     content = await asyncio.to_thread(
-                                        _convert_with_docling_vlm_convert, file_path, vlm_cfg
+                                        _convert_with_docling_vlm_convert,
+                                        file_path,
+                                        vlm_cfg,
                                     )
                                 elif mode == "picture_description":
-                                    logger.info(f"[Docling] Picture Description mode for {file_path.name}")
+                                    logger.info(
+                                        f"[Docling] Picture Description mode for {file_path.name}"
+                                    )
                                     content = await asyncio.to_thread(
-                                        _convert_with_docling_picture_description, file_path, vlm_cfg
+                                        _convert_with_docling_picture_description,
+                                        file_path,
+                                        vlm_cfg,
                                     )
                                 else:
                                     content = await asyncio.to_thread(
@@ -1914,8 +1950,8 @@ async def pipeline_enqueue_file(
                                 {
                                     "file_path": str(file_path.name),
                                     "error_description": (
-                                        f"[File Extraction]Image parsing requires MinerU engine. "
-                                        f"Set MINERU_ENABLED=true and MINERU_BASE_URL."
+                                        "[File Extraction]Image parsing requires MinerU engine. "
+                                        "Set MINERU_ENABLED=true and MINERU_BASE_URL."
                                     ),
                                     "original_error": (
                                         f"No engine available for image type {ext}. "
@@ -1932,9 +1968,7 @@ async def pipeline_enqueue_file(
                             )
                             return False, track_id
 
-                        logger.info(
-                            f"[MinerU] Processing image: {file_path.name}"
-                        )
+                        logger.info(f"[MinerU] Processing image: {file_path.name}")
                         content = await _extract_with_mineru(
                             file_path, file, mineru_cfg
                         )
@@ -2133,18 +2167,20 @@ async def pipeline_index_file(
         if extract_doc_id:
             try:
                 now_iso = datetime.now(timezone.utc).isoformat()
-                await rag.doc_status.upsert({
-                    extract_doc_id: {
-                        "status": DocStatus.FAILED,
-                        "content_summary": f"提取失败: {file_path.name}",
-                        "content_length": 0,
-                        "file_path": file_path.name,
-                        "track_id": track_id,
-                        "created_at": now_iso,
-                        "updated_at": now_iso,
-                        "error_msg": str(e),
+                await rag.doc_status.upsert(
+                    {
+                        extract_doc_id: {
+                            "status": DocStatus.FAILED,
+                            "content_summary": f"提取失败: {file_path.name}",
+                            "content_length": 0,
+                            "file_path": file_path.name,
+                            "track_id": track_id,
+                            "created_at": now_iso,
+                            "updated_at": now_iso,
+                            "error_msg": str(e),
+                        }
                     }
-                })
+                )
             except Exception:
                 pass
 
@@ -2229,7 +2265,9 @@ async def _reprocess_extraction_failures(
     # extraction call.  This lets the user see every file as "提取中"
     # immediately rather than watching files flip one-by-one as each blocking
     # MinerU call completes.
-    to_reprocess: list[tuple[Path, str, str]] = []  # (file_path, track_id, extract_doc_id)
+    to_reprocess: list[
+        tuple[Path, str, str]
+    ] = []  # (file_path, track_id, extract_doc_id)
 
     for doc_id, status_doc in failed_docs.items():
         # Skip processing-stage failures — those already have extracted content.
@@ -2303,9 +2341,7 @@ async def _reprocess_extraction_failures(
             if success:
                 scheduled += 1
         except Exception as e:
-            logger.error(
-                f"[Reprocess] Unexpected error re-extracting {file_name}: {e}"
-            )
+            logger.error(f"[Reprocess] Unexpected error re-extracting {file_name}: {e}")
             logger.error(traceback.format_exc())
             # Update placeholder to FAILED so the user sees the error.
             try:
@@ -2422,7 +2458,9 @@ async def run_scanning_process(
 
             # Process valid files (new files + non-PROCESSED status files)
             if valid_files:
-                await pipeline_index_files(rag, valid_files, track_id, kb_settings=kb_settings)
+                await pipeline_index_files(
+                    rag, valid_files, track_id, kb_settings=kb_settings
+                )
                 if processed_files:
                     logger.info(
                         f"Scanning process completed: {len(valid_files)} files Processed {len(processed_files)} skipped."
@@ -2924,21 +2962,28 @@ def create_document_routes(
             # take tens of seconds for MinerU/Docling processing).
             extract_doc_id = f"extract-{track_id}"
             now_iso = datetime.now(timezone.utc).isoformat()
-            await rag.doc_status.upsert({
-                extract_doc_id: {
-                    "status": DocStatus.EXTRACTING,
-                    "content_summary": f"正在提取内容: {safe_filename}",
-                    "content_length": 0,
-                    "file_path": safe_filename,
-                    "track_id": track_id,
-                    "created_at": now_iso,
-                    "updated_at": now_iso,
+            await rag.doc_status.upsert(
+                {
+                    extract_doc_id: {
+                        "status": DocStatus.EXTRACTING,
+                        "content_summary": f"正在提取内容: {safe_filename}",
+                        "content_length": 0,
+                        "file_path": safe_filename,
+                        "track_id": track_id,
+                        "created_at": now_iso,
+                        "updated_at": now_iso,
+                    }
                 }
-            })
+            )
 
             # Add to background tasks and get track_id
             background_tasks.add_task(
-                pipeline_index_file, rag, file_path, track_id, kb_settings, extract_doc_id
+                pipeline_index_file,
+                rag,
+                file_path,
+                track_id,
+                kb_settings,
+                extract_doc_id,
             )
 
             return InsertResponse(

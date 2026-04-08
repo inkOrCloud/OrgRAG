@@ -19,8 +19,15 @@ import tempfile
 import zipfile
 from typing import Any, Optional
 from sqlite3 import IntegrityError
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Security, UploadFile, File
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    HTTPException,
+    Security,
+    UploadFile,
+    File,
+)
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from lightrag.api.kb_db import get_kb_db
@@ -32,6 +39,7 @@ router = APIRouter(prefix="/kbs", tags=["Knowledge Bases"])
 
 
 # ── Schemas ───────────────────────────────────────────────────────────────────
+
 
 class KBCreateRequest(BaseModel):
     name: str
@@ -46,6 +54,7 @@ class KBUpdateRequest(BaseModel):
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def _enrich(kb, kb_manager, can_write: bool = True) -> dict:
     d = kb.to_dict()
@@ -75,6 +84,7 @@ async def _can_manage_kb(current_user: dict, kb_org_id: Optional[str]) -> bool:
 
 # ── Routes ────────────────────────────────────────────────────────────────────
 
+
 @router.get("", summary="List knowledge bases visible to current user")
 async def list_kbs(current_user: dict = Security(get_current_user)):
     db = get_kb_db()
@@ -82,7 +92,10 @@ async def list_kbs(current_user: dict = Security(get_current_user)):
     if current_user.get("role") == "admin":
         kbs = await db.list_kbs()
         # System admin always has full write access
-        return {"kbs": [_enrich(kb, kb_manager, can_write=True) for kb in kbs], "total": len(kbs)}
+        return {
+            "kbs": [_enrich(kb, kb_manager, can_write=True) for kb in kbs],
+            "total": len(kbs),
+        }
     else:
         # Phase C: union of read-scope + write-scope org IDs
         accessible = await db.get_accessible_org_ids_for_user(current_user["username"])
@@ -92,10 +105,12 @@ async def list_kbs(current_user: dict = Security(get_current_user)):
             kbs = await db.list_kbs_by_org_ids(all_org_ids)
         else:
             kbs = []  # No org membership → no KB access
+
         def _enrich_with_write(kb):
             # can_write if the KB's org is in the user's write scope
             can_write = kb.org_id in write_org_ids if kb.org_id else False
             return _enrich(kb, kb_manager, can_write=can_write)
+
         return {"kbs": [_enrich_with_write(kb) for kb in kbs], "total": len(kbs)}
 
 
@@ -149,11 +164,15 @@ async def create_kb(
         if membership:
             org_id = membership.org_id
         elif not is_system_admin:
-            raise HTTPException(status_code=403, detail="您尚未加入任何组织，无法创建知识库")
+            raise HTTPException(
+                status_code=403, detail="您尚未加入任何组织，无法创建知识库"
+            )
 
     # Permission check: must be system admin or org-admin of target org
     if not await _can_manage_kb(current_user, org_id):
-        raise HTTPException(status_code=403, detail="无权在该组织下创建知识库（需要组织管理员权限）")
+        raise HTTPException(
+            status_code=403, detail="无权在该组织下创建知识库（需要组织管理员权限）"
+        )
 
     try:
         kb = await db.create_kb(
@@ -163,14 +182,20 @@ async def create_kb(
             org_id=org_id,
         )
     except IntegrityError:
-        raise HTTPException(status_code=409, detail=f"Knowledge base '{body.name}' already exists")
+        raise HTTPException(
+            status_code=409, detail=f"Knowledge base '{body.name}' already exists"
+        )
 
     try:
         await kb_manager.load_kb(kb)
-        logger.info(f"KB '{kb.name}' created and loaded (org={org_id}, workspace={kb.workspace})")
+        logger.info(
+            f"KB '{kb.name}' created and loaded (org={org_id}, workspace={kb.workspace})"
+        )
     except Exception as e:
         await db.delete_kb(kb.id)
-        raise HTTPException(status_code=500, detail=f"Failed to initialise KB storage: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to initialise KB storage: {e}"
+        )
 
     d = kb.to_dict()
     d["loaded"] = True
@@ -187,7 +212,9 @@ async def get_kb(kb_id: str, current_user: dict = Security(get_current_user)):
         raise HTTPException(status_code=404, detail="Knowledge base not found")
     if current_user.get("role") != "admin":
         if not await db.has_kb_access(kb_id, current_user["username"]):
-            raise HTTPException(status_code=403, detail="Access denied to this knowledge base")
+            raise HTTPException(
+                status_code=403, detail="Access denied to this knowledge base"
+            )
     kb_manager = get_kb_manager()
     return {"kb": _enrich(kb, kb_manager)}
 
@@ -203,7 +230,9 @@ async def update_kb(
     if not existing:
         raise HTTPException(status_code=404, detail="Knowledge base not found")
     if not await _can_manage_kb(current_user, existing.org_id):
-        raise HTTPException(status_code=403, detail="无权修改该知识库（需要所属组织的管理员权限）")
+        raise HTTPException(
+            status_code=403, detail="无权修改该知识库（需要所属组织的管理员权限）"
+        )
 
     kwargs = {}
     if body.name is not None:
@@ -216,10 +245,15 @@ async def update_kb(
     try:
         kb = await db.update_kb(kb_id, **kwargs)
     except IntegrityError:
-        raise HTTPException(status_code=409, detail=f"Name '{body.name}' already exists")
+        raise HTTPException(
+            status_code=409, detail=f"Name '{body.name}' already exists"
+        )
 
     kb_manager = get_kb_manager()
-    return {"kb": _enrich(kb, kb_manager), "message": "Knowledge base updated successfully"}
+    return {
+        "kb": _enrich(kb, kb_manager),
+        "message": "Knowledge base updated successfully",
+    }
 
 
 @router.delete("/{kb_id}", summary="Delete knowledge base")
@@ -227,14 +261,18 @@ async def delete_kb(kb_id: str, current_user: dict = Security(get_current_user))
     kb_manager = get_kb_manager()
 
     if kb_id == kb_manager.default_kb_id:
-        raise HTTPException(status_code=400, detail="Cannot delete the default knowledge base")
+        raise HTTPException(
+            status_code=400, detail="Cannot delete the default knowledge base"
+        )
 
     db = get_kb_db()
     existing = await db.get_kb_by_id(kb_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Knowledge base not found")
     if not await _can_manage_kb(current_user, existing.org_id):
-        raise HTTPException(status_code=403, detail="无权删除该知识库（需要所属组织的管理员权限）")
+        raise HTTPException(
+            status_code=403, detail="无权删除该知识库（需要所属组织的管理员权限）"
+        )
 
     await kb_manager.unload_kb(kb_id)
     await db.delete_kb(kb_id)
@@ -242,6 +280,7 @@ async def delete_kb(kb_id: str, current_user: dict = Security(get_current_user))
 
 
 # ── Stats (Phase 3) ───────────────────────────────────────────────────────────
+
 
 @router.get("/{kb_id}/stats", summary="Get KB statistics")
 async def get_kb_stats(kb_id: str, current_user: dict = Security(get_current_user)):
@@ -268,9 +307,14 @@ async def get_kb_stats(kb_id: str, current_user: dict = Security(get_current_use
         edge_count = len(edges)
         # Chunk count: sum chunks_count from all processed docs
         from lightrag.base import DocStatus
+
         processed = await rag.doc_status.get_docs_by_status(DocStatus.PROCESSED)
         chunk_count = sum(
-            (getattr(d, "chunks_count", None) or d.get("chunks_count", 0) if not hasattr(d, "__dataclass_fields__") else d.chunks_count or 0)
+            (
+                getattr(d, "chunks_count", None) or d.get("chunks_count", 0)
+                if not hasattr(d, "__dataclass_fields__")
+                else d.chunks_count or 0
+            )
             for d in processed.values()
         )
     except Exception as e:
@@ -287,19 +331,36 @@ async def get_kb_stats(kb_id: str, current_user: dict = Security(get_current_use
 
 # ── Settings (Phase 3) ────────────────────────────────────────────────────────
 
+
 class KBSettingsRequest(BaseModel):
     mode: Optional[str] = Field(
         default=None,
         description="Query mode: local | global | hybrid | naive | mix",
         json_schema_extra={"example": "hybrid"},
     )
-    top_k: Optional[int] = Field(default=None, description="Number of top KG entities/relations to retrieve", ge=1)
-    chunk_top_k: Optional[int] = Field(default=None, description="Number of top text chunks to retrieve", ge=1)
-    max_entity_tokens: Optional[int] = Field(default=None, description="Max tokens for entity context", ge=1)
-    max_relation_tokens: Optional[int] = Field(default=None, description="Max tokens for relation context", ge=1)
-    max_total_tokens: Optional[int] = Field(default=None, description="Max total tokens for LLM context", ge=1)
-    enable_rerank: Optional[bool] = Field(default=None, description="Enable reranking of retrieved chunks")
-    response_type: Optional[str] = Field(default=None, description="Preferred response format hint for the LLM")
+    top_k: Optional[int] = Field(
+        default=None,
+        description="Number of top KG entities/relations to retrieve",
+        ge=1,
+    )
+    chunk_top_k: Optional[int] = Field(
+        default=None, description="Number of top text chunks to retrieve", ge=1
+    )
+    max_entity_tokens: Optional[int] = Field(
+        default=None, description="Max tokens for entity context", ge=1
+    )
+    max_relation_tokens: Optional[int] = Field(
+        default=None, description="Max tokens for relation context", ge=1
+    )
+    max_total_tokens: Optional[int] = Field(
+        default=None, description="Max total tokens for LLM context", ge=1
+    )
+    enable_rerank: Optional[bool] = Field(
+        default=None, description="Enable reranking of retrieved chunks"
+    )
+    response_type: Optional[str] = Field(
+        default=None, description="Preferred response format hint for the LLM"
+    )
 
     # ── Docling VLM settings ──────────────────────────────────────────────────
     # All fields are per-KB overrides; None means inherit the global server config.
@@ -372,14 +433,21 @@ async def update_kb_settings(
     new_settings: dict[str, Any] = dict(existing)
     for k, v in body.model_dump(exclude_none=True).items():
         new_settings[k] = v
-    kb = await db.update_kb_settings(kb_id, new_settings)
-    return {"kb_id": kb_id, "settings": new_settings, "message": "Settings updated successfully"}
+    await db.update_kb_settings(kb_id, new_settings)
+    return {
+        "kb_id": kb_id,
+        "settings": new_settings,
+        "message": "Settings updated successfully",
+    }
 
 
 # ── Export (Phase 3) ──────────────────────────────────────────────────────────
 
+
 @router.get("/{kb_id}/export", summary="Export KB data as ZIP")
-async def export_kb(kb_id: str, background_tasks: BackgroundTasks, _: dict = Security(require_admin)):
+async def export_kb(
+    kb_id: str, background_tasks: BackgroundTasks, _: dict = Security(require_admin)
+):
     db = get_kb_db()
     kb = await db.get_kb_by_id(kb_id)
     if not kb:
@@ -400,9 +468,9 @@ async def export_kb(kb_id: str, background_tasks: BackgroundTasks, _: dict = Sec
     # Files to exclude: LLM cache (regenerable) and oversized vector DBs
     EXCLUDE_FILES = {
         "kv_store_llm_response_cache.json",  # can be regenerated
-        "vdb_entities.json",                 # large (~100MB+), rebuilt from graphml
-        "vdb_relationships.json",            # large (~100MB+), rebuilt from graphml
-        "lightrag_users.db",                 # system database, not KB data
+        "vdb_entities.json",  # large (~100MB+), rebuilt from graphml
+        "vdb_relationships.json",  # large (~100MB+), rebuilt from graphml
+        "lightrag_users.db",  # system database, not KB data
     }
     MAX_SINGLE_FILE_MB = 50  # skip any single file over 50 MB
 
@@ -421,7 +489,9 @@ async def export_kb(kb_id: str, background_tasks: BackgroundTasks, _: dict = Sec
 
     try:
         with zipfile.ZipFile(tmp_path, "w", zipfile.ZIP_DEFLATED) as zf:
-            zf.writestr("kb_manifest.json", json.dumps(manifest, ensure_ascii=False, indent=2))
+            zf.writestr(
+                "kb_manifest.json", json.dumps(manifest, ensure_ascii=False, indent=2)
+            )
             for fname in os.listdir(data_dir):
                 if fname in EXCLUDE_FILES:
                     continue
@@ -430,12 +500,16 @@ async def export_kb(kb_id: str, background_tasks: BackgroundTasks, _: dict = Sec
                     continue
                 size_mb = os.path.getsize(fpath) / (1024 * 1024)
                 if size_mb > MAX_SINGLE_FILE_MB:
-                    logger.warning(f"Export: skipping large file '{fname}' ({size_mb:.1f} MB)")
+                    logger.warning(
+                        f"Export: skipping large file '{fname}' ({size_mb:.1f} MB)"
+                    )
                     continue
                 zf.write(fpath, arcname=fname)
     except Exception as e:
         os.unlink(tmp_path)
-        raise HTTPException(status_code=500, detail=f"Failed to create export archive: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to create export archive: {e}"
+        )
 
     safe_name = re.sub(r"[^a-zA-Z0-9_\-]", "_", kb.name)
     filename = f"kb_{safe_name}.zip"
@@ -455,6 +529,7 @@ async def export_kb(kb_id: str, background_tasks: BackgroundTasks, _: dict = Sec
 
 
 # ── Import (Phase 3) ──────────────────────────────────────────────────────────
+
 
 @router.post(
     "/import",
@@ -489,7 +564,9 @@ async def import_kb(
         with zipfile.ZipFile(buf, "r") as zf:
             names = zf.namelist()
             if "kb_manifest.json" not in names:
-                raise HTTPException(status_code=400, detail="Invalid export: missing kb_manifest.json")
+                raise HTTPException(
+                    status_code=400, detail="Invalid export: missing kb_manifest.json"
+                )
             manifest = json.loads(zf.read("kb_manifest.json").decode("utf-8"))
     except zipfile.BadZipFile:
         raise HTTPException(status_code=400, detail="Invalid ZIP file")
@@ -509,7 +586,9 @@ async def import_kb(
             owner_username=admin["username"],
         )
     except Exception:
-        raise HTTPException(status_code=409, detail=f"A KB named '{kb_name}' already exists")
+        raise HTTPException(
+            status_code=409, detail=f"A KB named '{kb_name}' already exists"
+        )
 
     if kb_settings:
         await db.update_kb_settings(kb.id, kb_settings)
@@ -518,7 +597,9 @@ async def import_kb(
     working_dir: str = kb_manager.working_dir
     if not working_dir:
         await db.delete_kb(kb.id)
-        raise HTTPException(status_code=500, detail="Cannot determine working directory")
+        raise HTTPException(
+            status_code=500, detail="Cannot determine working directory"
+        )
     target_dir = os.path.join(working_dir, kb.workspace)
     os.makedirs(target_dir, exist_ok=True)
 
@@ -542,4 +623,3 @@ async def import_kb(
     d["is_default"] = False
     d["can_write"] = True
     return {"kb": d, "message": f"Knowledge base '{kb.name}' imported successfully"}
-
