@@ -35,6 +35,9 @@ import {
 } from '@ant-design/icons'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import remarkMath from 'remark-math'
+import rehypeKatex from 'rehype-katex'
+import 'katex/dist/katex.min.css'
 import { queryStream, queryRag, extractErrorDetail } from '@/api/client'
 import { useSettingsStore } from '@/stores/settings'
 import { useChatStore } from '@/stores/chat'
@@ -78,6 +81,7 @@ const MODE_OPTIONS: { value: QueryMode; label: string; description: string }[] =
 
 function MessageBubble({ msg }: { msg: ChatMessage }) {
   const { message } = App.useApp()
+  const { isDark } = useSettingsStore()
   const isUser = msg.role === 'user'
 
   const handleCopy = () => {
@@ -119,7 +123,19 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
           {isUser ? (
             <Text style={{ color: '#fff', whiteSpace: 'pre-wrap' }}>{msg.content}</Text>
           ) : (
-            <div className="markdown-body" style={{ fontSize: 14, lineHeight: 1.7 }}>
+            <div className="markdown-body" style={{
+              fontSize: 14,
+              lineHeight: 1.7,
+              // Override github-markdown-css OS-based media query vars to match app theme.
+              // The CSS uses @media(prefers-color-scheme) on .markdown-body directly,
+              // so data-color-mode has no effect; we must override the variables inline.
+              ...({
+                '--bgColor-default': isDark ? '#0d1117' : '#ffffff',
+                '--fgColor-default': isDark ? '#f0f6fc' : '#1f2328',
+                '--bgColor-muted': isDark ? '#151b23' : '#f6f8fa',
+                '--borderColor-default': isDark ? '#3d444d' : '#d1d9e0',
+              } as React.CSSProperties),
+            }}>
               {msg.isStreaming && !msg.content ? (
                 <span style={{ opacity: 0.5 }}>
                   <LoadingOutlined spin style={{ marginRight: 6 }} />
@@ -153,7 +169,10 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
                       />
                     )}
                     {rest && (
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{rest}</ReactMarkdown>
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm, remarkMath]}
+                        rehypePlugins={[rehypeKatex]}
+                      >{rest}</ReactMarkdown>
                     )}
                     {msg.isStreaming && !thinkingOpen && (
                       <span className="streaming-cursor">▋</span>

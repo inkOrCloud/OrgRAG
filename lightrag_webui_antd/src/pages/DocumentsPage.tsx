@@ -59,10 +59,13 @@ import {
   getDocumentContent,
 } from '@/api/client'
 import type { DocStatusResponse, DocStatus, DocContentResponse } from '@/types'
-import { marked } from 'marked'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import remarkMath from 'remark-math'
+import rehypeKatex from 'rehype-katex'
+import rehypeRaw from 'rehype-raw'
+import 'katex/dist/katex.min.css'
 import 'github-markdown-css/github-markdown.css'
-
-marked.use({ breaks: true, gfm: true })
 import { useKBStore } from '@/stores/kb'
 import { useAuthStore } from '@/stores/auth'
 import { useSettingsStore } from '@/stores/settings'
@@ -775,9 +778,6 @@ export default function DocumentsPage() {
               lineHeight: 1.8,
               fontSize: 14,
               boxSizing: 'border-box',
-              // Override github-markdown-css OS-based media query vars to match app theme.
-              // The CSS uses @media(prefers-color-scheme) on .markdown-body directly,
-              // so data-color-mode has no effect; we must override the variables inline.
               ...({
                 '--bgColor-default': isDark ? '#0d1117' : '#ffffff',
                 '--fgColor-default': isDark ? '#f0f6fc' : '#1f2328',
@@ -785,8 +785,14 @@ export default function DocumentsPage() {
                 '--borderColor-default': isDark ? '#3d444d' : '#d1d9e0',
               } as React.CSSProperties),
             }}
-            dangerouslySetInnerHTML={{ __html: marked.parse(docContent.content) as string }}
-          />
+          >
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm, remarkMath]}
+              rehypePlugins={[rehypeRaw, rehypeKatex]}
+            >
+              {docContent.content}
+            </ReactMarkdown>
+          </div>
         ) : null}
       </Drawer>
     </div>
