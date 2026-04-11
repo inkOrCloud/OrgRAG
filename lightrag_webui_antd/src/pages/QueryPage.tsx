@@ -279,7 +279,7 @@ function HistoryItem({
 
 export default function QueryPage() {
   const { message } = App.useApp()
-  const { querySettings, updateQuerySettings } = useSettingsStore()
+  const { querySettings, updateQuerySettings, isDark } = useSettingsStore()
   const { sessions, activeSessionId, isLoading: isSessionsLoading, saveSession, deleteSession, setActiveSessionId, clearActiveSession, loadSessions } = useChatStore()
   const { currentKBId } = useKBStore()
   const { webuiTitle } = useAuthStore()
@@ -820,7 +820,8 @@ export default function QueryPage() {
         )}
       </Drawer>
 
-      <style>{`
+      <style dangerouslySetInnerHTML={{
+        __html: `
         .streaming-cursor {
           display: inline-block;
           animation: blink 1s step-end infinite;
@@ -830,13 +831,13 @@ export default function QueryPage() {
           50% { opacity: 0; }
         }
         .markdown-body pre {
-          background: rgba(0,0,0,0.06);
+          background: ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'};
           border-radius: 6px;
           padding: 12px;
           overflow-x: auto;
         }
         .markdown-body code {
-          background: rgba(0,0,0,0.06);
+          background: ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'};
           padding: 2px 4px;
           border-radius: 3px;
           font-family: monospace;
@@ -844,15 +845,15 @@ export default function QueryPage() {
         }
         .markdown-body pre code { background: none; padding: 0; }
         .markdown-body table { border-collapse: collapse; width: 100%; }
-        .markdown-body th, .markdown-body td { border: 1px solid #e0e0e0; padding: 6px 10px; }
-        .markdown-body th { background: rgba(0,0,0,0.04); }
+        .markdown-body th, .markdown-body td { border: 1px solid ${isDark ? '#3d444d' : '#e0e0e0'}; padding: 6px 10px; }
+        .markdown-body th { background: ${isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)'}; }
         .markdown-body blockquote {
           border-left: 3px solid #1677ff;
           padding-left: 12px;
           margin: 8px 0;
-          color: #666;
+          color: ${isDark ? '#b0b0b0' : '#666'};
         }
-      `}</style>
+      `}} ></style>
     </div>
   )
 }
