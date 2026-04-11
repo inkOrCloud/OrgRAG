@@ -2155,7 +2155,68 @@ async def pipeline_index_file(
                 await rag.doc_status.delete([extract_doc_id])
             except Exception:
                 pass
+
         if success:
+            # Check whether the user cancelled while extraction was running.
+            # pipeline_enqueue_file can take minutes (MinerU / Docling), so the
+            # cancel request may have arrived after we started but before we
+            # reached this point.  If so, mark the freshly-created PENDING
+            # document as FAILED and skip triggering the processing pipeline,
+            # so the user does not see a new "等待中" entry after cancellation.
+            cancelled = False
+            try:
+                from lightrag.kg.shared_storage import get_namespace_data
+
+                pipeline_status = await get_namespace_data(
+                    "pipeline_status", workspace=rag.workspace
+                )
+                cancelled = pipeline_status.get("cancellation_requested", False)
+            except Exception:
+                pass  # If we cannot read the flag, proceed normally
+
+            if cancelled:
+                logger.info(
+                    f"Cancellation detected after extraction of {file_path.name}; "
+                    "marking newly enqueued document as FAILED instead of processing."
+                )
+                # Find the PENDING record just created by pipeline_enqueue_file
+                # and flip it to FAILED so it does not appear as "等待中".
+                try:
+                    pending_docs = await rag.doc_status.get_docs_by_status(
+                        DocStatus.PENDING
+                    )
+                    if pending_docs:
+                        now_iso = datetime.now(timezone.utc).isoformat()
+                        failed_updates: dict = {}
+                        for doc_id, status_doc in pending_docs.items():
+                            fp = getattr(status_doc, "file_path", "") or ""
+                            if fp == file_path.name:
+                                failed_updates[doc_id] = {
+                                    "status": DocStatus.FAILED,
+                                    "error_msg": "User cancelled",
+                                    "content_summary": getattr(
+                                        status_doc, "content_summary", ""
+                                    ),
+                                    "content_length": getattr(
+                                        status_doc, "content_length", 0
+                                    ),
+                                    "file_path": fp,
+                                    "track_id": getattr(
+                                        status_doc, "track_id", track_id or ""
+                                    ),
+                                    "created_at": getattr(
+                                        status_doc, "created_at", now_iso
+                                    ),
+                                    "updated_at": now_iso,
+                                }
+                        if failed_updates:
+                            await rag.doc_status.upsert(failed_updates)
+                except Exception as mark_err:
+                    logger.warning(
+                        f"Could not mark cancelled PENDING document as FAILED: {mark_err}"
+                    )
+                return  # Do NOT start the processing pipeline
+
             await rag.apipeline_process_enqueue_documents()
 
     except Exception as e:
@@ -4047,18 +4108,67 @@ def create_document_routes(
             )
 
             async with pipeline_status_lock:
-                if not pipeline_status.get("busy", False):
-                    return CancelPipelineResponse(
-                        status="not_busy",
-                        message="Pipeline is not currently running. No cancellation needed.",
-                    )
+                is_busy = pipeline_status.get("busy", False)
 
-                # Set cancellation flag
+                if not is_busy:
+                    # Even when the processing pipeline is idle, there may be
+                    # background upload tasks still in EXTRACTING state.  Check
+                    # for those before declaring "not_busy".
+                    extracting_docs = await rag.doc_status.get_docs_by_status(
+                        DocStatus.EXTRACTING
+                    )
+                    if not extracting_docs:
+                        return CancelPipelineResponse(
+                            status="not_busy",
+                            message="Pipeline is not currently running. No cancellation needed.",
+                        )
+
+                # Set cancellation flag so pipeline_index_file background tasks
+                # see it after their slow extraction step finishes.
                 pipeline_status["cancellation_requested"] = True
                 cancel_msg = "Pipeline cancellation requested by user"
                 logger.info(cancel_msg)
                 pipeline_status["latest_message"] = cancel_msg
                 pipeline_status["history_messages"].append(cancel_msg)
+
+            # Mark every EXTRACTING placeholder as FAILED immediately so the
+            # frontend stops showing them as "提取中" and instead shows "失败".
+            # The background pipeline_index_file tasks may still be running; if
+            # they finish they will overwrite or delete these records, but the
+            # cancellation_requested flag (checked in pipeline_index_file) will
+            # prevent new processing from starting.
+            try:
+                extracting_docs = await rag.doc_status.get_docs_by_status(
+                    DocStatus.EXTRACTING
+                )
+                if extracting_docs:
+                    now_iso = datetime.now(timezone.utc).isoformat()
+                    failed_updates: dict = {}
+                    for doc_id, status_doc in extracting_docs.items():
+                        failed_updates[doc_id] = {
+                            "status": DocStatus.FAILED,
+                            "error_msg": "User cancelled",
+                            "content_summary": getattr(
+                                status_doc, "content_summary", ""
+                            ),
+                            "content_length": getattr(
+                                status_doc, "content_length", 0
+                            ),
+                            "file_path": getattr(status_doc, "file_path", ""),
+                            "track_id": getattr(status_doc, "track_id", ""),
+                            "created_at": getattr(
+                                status_doc, "created_at", now_iso
+                            ),
+                            "updated_at": now_iso,
+                        }
+                    await rag.doc_status.upsert(failed_updates)
+                    logger.info(
+                        f"Marked {len(failed_updates)} EXTRACTING document(s) as FAILED due to cancellation"
+                    )
+            except Exception as mark_err:
+                logger.warning(
+                    f"Could not mark EXTRACTING documents as FAILED: {mark_err}"
+                )
 
             return CancelPipelineResponse(
                 status="cancellation_requested",

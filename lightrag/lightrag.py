@@ -1707,6 +1707,19 @@ class LightRAG:
         async with pipeline_status_lock:
             # Ensure only one worker is processing documents
             if not pipeline_status.get("busy", False):
+                # A cancellation flag may have been set while extraction tasks
+                # were running (pipeline was not busy at that point).  If we
+                # start the pipeline now we would silently ignore the cancel.
+                # Clear the flag and skip this run so cancelled documents stay
+                # in FAILED / PENDING state without being auto-processed.
+                if pipeline_status.get("cancellation_requested", False):
+                    pipeline_status["cancellation_requested"] = False
+                    logger.info(
+                        "Pipeline start skipped: cancellation was requested while "
+                        "the pipeline was idle (e.g. during file extraction)."
+                    )
+                    return
+
                 processing_docs, failed_docs, pending_docs = await asyncio.gather(
                     self.doc_status.get_docs_by_status(DocStatus.PROCESSING),
                     self.doc_status.get_docs_by_status(DocStatus.FAILED),
